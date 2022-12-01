@@ -32,5 +32,8 @@
     <ClInclude Include="include\mtgl\mtgl.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="include\mtgl\mtgl_input_defs.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

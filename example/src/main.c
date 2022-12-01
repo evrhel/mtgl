@@ -31,6 +31,16 @@ extern GLuint link_shaders(GLuint vert, GLuint frag);
 
 static int loader_worker(struct ctx *prog_ctx);
 
+static void
+window_resized(glwin *win, int width, int height)
+{
+	struct ctx *ctx = glwin_get_user_data(win);
+
+	glctx_acquire(ctx->ctx);
+	glViewport(0, 0, width, height);
+	glctx_release(ctx->ctx);
+}
+
 static int
 load_shaders(struct ctx *prog_ctx)
 {
@@ -60,19 +70,23 @@ int
 main(int argc, char *argv[])
 {
 	const float one_third_2pi = 2.0943951f;
+	const int max_frame_skips = 5;
 	struct ctx prog_ctx = { 0 };
 	int width, height;
 	GLfloat r, g, b;
-	GLfloat back;
 	int skipped_frames = 0;
+	int total_skipped_frames = 0;
 	int num_frames = 0;
 	float start, end;
+	int acquired;
 
 	mtgl_init();
 
 	/* create a window and OpenGL context */
-	prog_ctx.win = glwin_create(800, 600);
+	prog_ctx.win = glwin_create(800, 600, &prog_ctx);
 	prog_ctx.ctx = glctx_create(prog_ctx.win, 3, 3);
+
+	glwin_set_event_callback(prog_ctx.win, glwin_event_resize, window_resized);
 
 	glctx_set_swap_interval(prog_ctx.ctx, 1); // enable vsync
 
@@ -102,37 +116,56 @@ main(int argc, char *argv[])
 		g = sinf(glwin_get_time(prog_ctx.win) + one_third_2pi) * 0.5f + 0.5f;
 		b = sinf(glwin_get_time(prog_ctx.win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
 
-		glctx_acquire(prog_ctx.ctx);
-
-		/* update viewport to match window size*/
-		glViewport(0, 0, width, height);
-
-		glClearColor(r, g, b, 1);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		/* draw the triangle */
-		if (prog_ctx.objects.tri_vao && prog_ctx.programs.screen)
+		if (skipped_frames < max_frame_skips)
+			acquired = glctx_try_acquire(prog_ctx.ctx);
+		else
 		{
-			glUseProgram(prog_ctx.programs.screen);
-
-			glUniform3f(prog_ctx.programs.screen_color_unif, r, g, b);
-
-			glBindVertexArray(prog_ctx.objects.tri_vao);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			skipped_frames = 0;
+			glctx_acquire(prog_ctx.ctx);
+			acquired = 1;
 		}
 
-		glctx_release(prog_ctx.ctx);
+		if (acquired)
+		{
+			glClearColor(r, g, b, 1);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			/* draw the triangle */
+			if (prog_ctx.objects.tri_vao && prog_ctx.programs.screen)
+			{
+				glUseProgram(prog_ctx.programs.screen);
+
+				glUniform3f(prog_ctx.programs.screen_color_unif, r, g, b);
+
+				glBindVertexArray(prog_ctx.objects.tri_vao);
+				glDrawArrays(GL_TRIANGLES, 0, 3);
+			}
+
+			glctx_release(prog_ctx.ctx);
+			acquired = 0;
+
+			/* swap front and back buffers */
+			glwin_swap_buffers(prog_ctx.win);
+		}
+		else
+		{
+			skipped_frames++;
+			total_skipped_frames++;
+		}
+
+		/* poll window events */
+		glwin_poll_events(prog_ctx.win);
+
+		/* close the window if escape key is pressed */
+		if (glwin_get_key(prog_ctx.win, glwin_escape))
+			glwin_set_should_close(prog_ctx.win, 1);
 
 		num_frames++;
-
-		/* swap front and back buffers and poll window events */
-		glwin_swap_buffers(prog_ctx.win);
-		glwin_poll_events(prog_ctx.win);
 	}
 
 	end = glwin_get_time(prog_ctx.win);
 
-	glthread_join(prog_ctx.worker);
+	glthread_detach(prog_ctx.worker);
 	prog_ctx.worker = 0;
 
 	/* cleanup OpenGL resources */
@@ -151,7 +184,7 @@ main(int argc, char *argv[])
 	mtgl_done();
 
 	printf("frames:    %d\n", num_frames);
-	printf("skipped:   %d\n", skipped_frames);
+	printf("skipped:   %d\n", total_skipped_frames);
 	printf("avg fps:   %f\n", (double)(num_frames / (end - start)));
 
 	return 0;
@@ -160,8 +193,6 @@ main(int argc, char *argv[])
 static int
 loader_worker(struct ctx *prog_ctx)
 {
-	const float one_third_2pi = 2.0943951f;
-
 	glwin *win = prog_ctx->win;
 	glctx *ctx = prog_ctx->ctx;
 

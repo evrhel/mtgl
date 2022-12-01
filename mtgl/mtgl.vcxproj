@@ -159,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\mtgl\mtgl.h" />
+    <ClInclude Include="include\mtgl\mtgl_input_defs.h" />
     <ClInclude Include="src\glwin_private.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
