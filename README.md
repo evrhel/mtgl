@@ -30,8 +30,6 @@ Behavior of OpenGL calls outside the bounds of matching `glctx_acquire` and
 
 ### Examples
 
-See `example/src/main.c` for an example program.
-
 Example main thread usage, using [Glad](https://glad.dav1d.de/) as a loader:
 ```c
 #include <glad/glad.h>
@@ -81,3 +79,13 @@ int main(int argc, char *argv[])
 	return 0;
 }
 ```
+
+`example/src/main.c` is an example program using the framework. It creates
+a window, and immediately launches a worker thread to load OpenGL resources
+asynchronously and simulates a long CPU task. This program results in the
+render thread running without issue while a triangle's loading time is being
+artificially slowed down.
+
+<p align="center">
+  <img src="images/tri.png">
+</p>

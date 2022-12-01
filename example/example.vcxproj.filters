@@ -39,7 +39,7 @@
     <ClCompile Include="dependencies\src\glad\glad.c">
       <Filter>ext\glad</Filter>
     </ClCompile>
-    <ClCompile Include="shaders.c">
+    <ClCompile Include="src\shaders.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

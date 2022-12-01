@@ -64,6 +64,9 @@ main(int argc, char *argv[])
 	int width, height;
 	GLfloat r, g, b;
 	GLfloat back;
+	int skipped_frames = 0;
+	int num_frames = 0;
+	float start, end;
 
 	mtgl_init();
 
@@ -88,6 +91,8 @@ main(int argc, char *argv[])
 
 	glwin_show_window(prog_ctx.win, 1); // show the window
 
+	start = glwin_get_time(prog_ctx.win);
+
 	/* loop until the window should close */
 	while (!glwin_should_close(prog_ctx.win))
 	{
@@ -102,7 +107,7 @@ main(int argc, char *argv[])
 		/* update viewport to match window size*/
 		glViewport(0, 0, width, height);
 
-		glClearColor(r,g,b, 1);
+		glClearColor(r, g, b, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		/* draw the triangle */
@@ -118,10 +123,14 @@ main(int argc, char *argv[])
 
 		glctx_release(prog_ctx.ctx);
 
+		num_frames++;
+
 		/* swap front and back buffers and poll window events */
 		glwin_swap_buffers(prog_ctx.win);
 		glwin_poll_events(prog_ctx.win);
 	}
+
+	end = glwin_get_time(prog_ctx.win);
 
 	glthread_join(prog_ctx.worker);
 	prog_ctx.worker = 0;
@@ -140,6 +149,10 @@ main(int argc, char *argv[])
 	glwin_destroy(prog_ctx.win);
 
 	mtgl_done();
+
+	printf("frames:    %d\n", num_frames);
+	printf("skipped:   %d\n", skipped_frames);
+	printf("avg fps:   %f\n", (double)(num_frames / (end - start)));
 
 	return 0;
 }
@@ -162,14 +175,17 @@ loader_worker(struct ctx *prog_ctx)
 
 	glctx_acquire(ctx);
 
+	printf("Loading shaders\n");
 	load_shaders(prog_ctx);
-
 	prog_ctx->programs.screen_color_unif = glGetUniformLocation(prog_ctx->programs.screen, "uColor");
+	printf("Done loading\n");
 
 	glctx_release(ctx);
 
-	// some long cpu work
+	// some long cpu work (maybe something to do with the triangle created below, but not on GPU)
+	printf("Doing some 'intensive' cpu work\n");
 	Sleep(3000);
+	printf("Work done\n");
 
 	glctx_acquire(ctx);
 
