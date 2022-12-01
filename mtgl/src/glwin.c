@@ -3,20 +3,22 @@
 static const char win_class_name[] = "glwin";
 static int win_class_refs = 0;
 
+/* Windows event handler */
 static LRESULT CALLBACK
 glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	glwin *win;
 
-	win = GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	win = (glwin *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 
 	switch (uMsg)
 	{
 	case WM_NCCREATE: {
-		SetWindowLongPtrA(hwnd, GWLP_USERDATA, ((CREATESTRUCTA *)lParam)->lpCreateParams);
+		SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG)((CREATESTRUCTA *)lParam)->lpCreateParams);
 		return TRUE;
 	}
-	case WM_CLOSE: {
+	case WM_CLOSE:
+	case WM_QUIT: {
 		win->should_close = 1;
 		return 0;
 	}
@@ -84,6 +86,9 @@ glwin_create(int width, int height)
 	win->hdc = GetDC(win->hwnd);
 	if (!win->hdc) goto failure;
 
+	if (!QueryPerformanceFrequency(&win->freq)) goto failure;
+	QueryPerformanceCounter(&win->start);
+
 	win_class_refs++;
 	gllock_release(mtgl_get_lock());
 	return win;
@@ -126,6 +131,7 @@ glwin_poll_events(glwin *win)
 
 	win->was_resized = 0;
 
+	/* handle all waiting messages */
 	while ((bResult = PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE)) > 0)
 	{
 		TranslateMessage(&msg);
@@ -150,6 +156,13 @@ glwin_get_size(glwin *win, int *const width, int *const height)
 {
 	*width = win->width;
 	*height = win->height;
+}
+
+float glwin_get_time(glwin *win)
+{
+	LARGE_INTEGER li;
+	QueryPerformanceCounter(&li);
+	return (float)(li.QuadPart - win->start.QuadPart) / win->freq.QuadPart;
 }
 
 void

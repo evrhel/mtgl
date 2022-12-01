@@ -13,4 +13,7 @@ struct glwin
 	int should_close;
 	int was_resized;
 	int width, height;
+
+	LARGE_INTEGER start;
+	LARGE_INTEGER freq;
 };

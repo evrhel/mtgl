@@ -5,12 +5,6 @@ typedef struct glctx glctx;
 typedef struct glthread glthread;
 typedef struct gllock gllock;
 
-typedef unsigned char uchar;
-typedef unsigned short int ushort;
-typedef unsigned int uint;
-typedef unsigned long int ulong;
-typedef unsigned long long int ulonglong;
-
 typedef int(*glthread_fn)(void *);
 
 int mtgl_init();
@@ -24,12 +18,14 @@ void glwin_poll_events(glwin *win);
 void glwin_swap_buffers(glwin *win);
 int glwin_was_resized(glwin *win);
 void glwin_get_size(glwin *win, int *const width, int *const height);
+float glwin_get_time(glwin *win);
 void glwin_destroy(glwin *win);
 
 glctx *glctx_create(glwin *win, int ver_major, int ver_minor);
 glctx *glctx_clone(glctx *ctx);
 void glctx_acquire(glctx *ctx);
 void glctx_release(glctx *ctx);
+void glctx_set_swap_interval(glctx *ctx, int interval);
 void glctx_destroy(glctx *ctx);
 
 glthread *glthread_create(glctx *ctx, glthread_fn entry, void *param1);

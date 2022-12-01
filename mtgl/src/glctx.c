@@ -11,6 +11,7 @@ struct glctx
 	HGLRC hglrc;
 	gllock *lock;
 	int ver_major, ver_minor;
+	int nesting;
 };
 
 static int gl_refs = 0;
@@ -308,14 +309,26 @@ void
 glctx_acquire(glctx *ctx)
 {
 	gllock_acquire(ctx->lock);
-	wglMakeCurrent(ctx->win->hdc, ctx->hglrc);
+	ctx->nesting++;
+	if (ctx->nesting == 1)
+		wglMakeCurrent(ctx->win->hdc, ctx->hglrc);
 }
 
 void
 glctx_release(glctx *ctx)
 {
-	wglMakeCurrent(NULL, NULL);
+	ctx->nesting--;
+	if (ctx->nesting == 0)
+		wglMakeCurrent(NULL, NULL);
 	gllock_release(ctx->lock);
+}
+
+void
+glctx_set_swap_interval(glctx *ctx, int interval)
+{
+	glctx_acquire(ctx);
+	wglSwapIntervalEXT(interval);
+	glctx_release(ctx);
 }
 
 void
