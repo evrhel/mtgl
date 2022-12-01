@@ -27,6 +27,7 @@ void glctx_acquire(glctx *ctx);
 void glctx_release(glctx *ctx);
 void glctx_set_swap_interval(glctx *ctx, int interval);
 void glctx_destroy(glctx *ctx);
+void *glctx_get_proc(const char *name);
 
 glthread *glthread_create(glctx *ctx, glthread_fn entry, void *param1);
 void glthread_detach(glthread *thread);

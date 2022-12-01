@@ -32,41 +32,52 @@ Behavior of OpenGL calls outside the bounds of matching `glctx_acquire` and
 
 See `mtgl/src/main.c` for an example program.
 
-Example main thread usage:
+Example main thread usage, using [Glad](https://glad.dav1d.de/) as a loader:
 ```c
-glwin *win;
-glctx *ctx;
-int width, height;
+#include <glad/glad.h>
+#include "mtgl.h"
 
-mtgl_init(); // initialize mtgl
-
-win = glwin_create(800, 600); // create 800x600 window
-ctx = glctx_create(win, 3, 3); // create OpenGL 3.3 context
-
-glwin_show_window(win, 1); // show the window
-
-// loop until the user closes the window
-while (!glwin_should_close(win))
+int main(int argc, char *argv[])
 {
-	// get size of window
-	glwin_get_size(win, &width, &height);
+	glwin *win;
+	glctx *ctx;
+	int width, height;
+
+	mtgl_init(); // initialize mtgl
+
+	win = glwin_create(800, 600); // create 800x600 window
+	ctx = glctx_create(win, 3, 3); // create OpenGL 3.3 context
 
 	glctx_acquire(ctx); // acquire the OpenGL context
-
-	glClearColor(0, 0, 0, 1); // set clear color to black
-	glViewport(0, 0, width, height); // set viewport to window size
-	glClear(GL_COLOR_BUFFER_BIT); // set clear color
-
-	// do some other drawing...
-
+	gladLoadGLLoader(glctx_get_proc); // load OpenGL functions
 	glctx_release(ctx); // release the OpenGL context
 
-	glwin_swap_buffers(win); // swap front and back buffers
-	glwin_poll_events(win); // poll and handle window events
+	glwin_show_window(win, 1); // show the window
+
+	// loop until the user closes the window
+	while (!glwin_should_close(win))
+	{
+		// get size of window
+		glwin_get_size(win, &width, &height);
+
+		glctx_acquire(ctx); // acquire the OpenGL context
+
+		glClearColor(0, 0, 0, 1); // set clear color to black
+		glViewport(0, 0, width, height); // set viewport to window size
+		glClear(GL_COLOR_BUFFER_BIT); // clear screen
+
+		// do some other drawing...
+
+		glctx_release(ctx); // release the OpenGL context
+
+		glwin_swap_buffers(win); // swap front and back buffers
+		glwin_poll_events(win); // poll and handle window events
+	}
+
+	glctx_destroy(ctx);
+	glwin_destroy(win);
+
+	mtgl_done(); // done with mtgl
+	return 0;
 }
-
-glctx_destroy(ctx);
-glwin_destroy(win);
-
-mtgl_done(); // done with mtgl
 ```

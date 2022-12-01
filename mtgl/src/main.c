@@ -169,6 +169,8 @@ main(int argc, char *argv[])
 
 	glctx_acquire(ctx);
 
+	gladLoadGLLoader(glctx_get_proc); // load OpenGL functions
+
 	/* Print OpenGL info */
 	printf("OpenGL:  %s\n", glGetString(GL_VERSION));
 	printf("GLSL:    %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));

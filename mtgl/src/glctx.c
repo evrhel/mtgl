@@ -1,7 +1,5 @@
 #include "glwin_private.h"
 
-#include <glad/glad.h>
-
 #include <GL/glcorearb.h>
 #include <GL/wglext.h>
 
@@ -20,16 +18,6 @@ static HMODULE hGLModule = 0;
 static PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = 0;
 static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = 0;
 static PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT = 0;
-
-/* return address of OpenGL function */
-static void *
-glctx_get_proc(const char *name)
-{
-	void *proc;
-	proc = wglGetProcAddress(name);
-	if (!proc) proc = GetProcAddress(hGLModule, name);
-	return proc;
-}
 
 /* initialize necessary functions to create an OpenGL context */
 static int
@@ -352,4 +340,13 @@ glctx_destroy(glctx *ctx)
 	gllock_release(mtgl_get_lock());
 
 	free(ctx);
+}
+
+void *
+glctx_get_proc(const char *name)
+{
+	void *proc;
+	proc = wglGetProcAddress(name);
+	if (!proc && hGLModule) proc = GetProcAddress(hGLModule, name);
+	return proc;
 }
