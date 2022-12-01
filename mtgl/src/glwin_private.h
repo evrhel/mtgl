@@ -2,7 +2,7 @@
 
 #include <Windows.h>
 
-#include "mtgl.h"
+#include <mtgl/mtgl.h>
 
 struct glwin
 {

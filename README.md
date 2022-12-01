@@ -1,8 +1,8 @@
 # mtgl
 
-mtgl is a framework for experimenting with using OpenGL in multithreaded programs.
-It has support for creating multiple shared OpenGL contexts as well as synchronizing
-OpenGL operations on the same context across different threads.
+mtgl is a framework for using OpenGL in multithreaded programs. It has support for
+creating multiple shared OpenGL contexts as well as synchronizing OpenGL operations
+on the same context across different threads.
 
 ## Usage
 
@@ -30,7 +30,7 @@ Behavior of OpenGL calls outside the bounds of matching `glctx_acquire` and
 
 ### Examples
 
-See `mtgl/src/main.c` for an example program.
+See `example/src/main.c` for an example program.
 
 Example main thread usage, using [Glad](https://glad.dav1d.de/) as a loader:
 ```c

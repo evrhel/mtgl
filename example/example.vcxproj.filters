@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{55dd6816-156f-4fec-8110-bca27bd2ba6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext">
+      <UniqueIdentifier>{db6bc64c-3c59-4284-b49e-cf117e6d94e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\mtgl">
+      <UniqueIdentifier>{5fed667f-466a-4d68-a931-9c5217467524}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\mtgl\GL">
+      <UniqueIdentifier>{7393dfa8-baff-44d7-a72b-2745adb27015}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\glad">
+      <UniqueIdentifier>{4c60656d-ed49-4920-98bc-0287ff93027b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\glctx.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\gllock.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\glthread.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\glwin.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\src\glad\glad.c">
+      <Filter>ext\glad</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\mtgl\src\glwin_private.h">
+      <Filter>ext\mtgl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mtgl\src\GL\glcorearb.h">
+      <Filter>ext\mtgl\GL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mtgl\src\GL\wglext.h">
+      <Filter>ext\mtgl\GL</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

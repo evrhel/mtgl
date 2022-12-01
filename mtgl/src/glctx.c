@@ -1,7 +1,10 @@
 #include "glwin_private.h"
 
-#include <GL/glcorearb.h>
-#include <GL/wglext.h>
+#pragma comment(lib, "opengl32.lib")
+
+#include <gl/GL.h>
+#include "GL/glcorearb.h"
+#include "GL/wglext.h"
 
 struct glctx
 {
@@ -13,7 +16,6 @@ struct glctx
 };
 
 static int gl_refs = 0;
-static int gl_ver_major = 0, gl_ver_minor = 0;
 static HMODULE hGLModule = 0;
 static PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = 0;
 static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = 0;
@@ -194,18 +196,6 @@ glctx_create(glwin *win, int ver_major, int ver_minor)
 	ctx->hglrc = wglCreateContextAttribsARB(win->hdc, 0, aiContextAttributes);
 	if (!ctx->hglrc) goto failure;
 
-	/* load the necessary OpenGL functions, if the version is higher */
-	if (ver_major > gl_ver_major || (ver_major == gl_ver_major && ver_minor > gl_ver_minor))
-	{
-		if (!wglMakeCurrent(win->hdc, ctx->hglrc)) goto failure;
-		if (!gladLoadGLLoader(glctx_get_proc)) goto failure;
-
-		gl_ver_minor = ver_minor;
-		gl_ver_major = ver_major;
-
-		if (!wglMakeCurrent(NULL, NULL)) goto failure;
-	}
-
 	ctx->win = win;
 	ctx->ver_major = ver_major;
 	ctx->ver_minor = ver_minor;
@@ -228,8 +218,6 @@ failure:
 	{
 		FreeLibrary(hGLModule);
 		hGLModule = 0;
-		gl_ver_major = 0;
-		gl_ver_minor = 0;
 		hGLModule = 0;
 		wglChoosePixelFormatARB = 0;
 		wglCreateContextAttribsARB = 0;

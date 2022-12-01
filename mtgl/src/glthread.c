@@ -1,4 +1,4 @@
-#include "mtgl.h"
+#include <mtgl/mtgl.h>
 
 #include <Windows.h>
 
