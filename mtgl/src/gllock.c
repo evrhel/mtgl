@@ -7,7 +7,8 @@ struct gllock
 	CRITICAL_SECTION cs;
 };
 
-gllock *gllock_create()
+gllock *
+gllock_create()
 {
 	gllock *lock;
 
@@ -19,17 +20,26 @@ gllock *gllock_create()
 	return lock;
 }
 
-void gllock_acquire(gllock *lock)
+void
+gllock_acquire(gllock *lock)
 {
 	EnterCriticalSection(&lock->cs);
 }
 
-void gllock_release(gllock *lock)
+int
+gllock_try_acquire(gllock *lock)
+{
+	return TryEnterCriticalSection(&lock->cs);
+}
+
+void
+gllock_release(gllock *lock)
 {
 	LeaveCriticalSection(&lock->cs);
 }
 
-void gllock_destroy(gllock *lock)
+void
+gllock_destroy(gllock *lock)
 {
 	if (lock)
 	{

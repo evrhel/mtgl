@@ -24,6 +24,7 @@ void glwin_destroy(glwin *win);
 glctx *glctx_create(glwin *win, int ver_major, int ver_minor);
 glctx *glctx_clone(glctx *ctx);
 void glctx_acquire(glctx *ctx);
+int glctx_try_acquire(glctx *ctx);
 void glctx_release(glctx *ctx);
 void glctx_set_swap_interval(glctx *ctx, int interval);
 void glctx_destroy(glctx *ctx);
@@ -35,5 +36,6 @@ int glthread_join(glthread *thread);
 
 gllock *gllock_create();
 void gllock_acquire(gllock *lock);
+int gllock_try_acquire(gllock *lock);
 void gllock_release(gllock *lock);
 void gllock_destroy(gllock *lock);

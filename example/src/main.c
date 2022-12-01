@@ -1,122 +1,38 @@
 #include <mtgl/mtgl.h>
 
+#include <Windows.h>
 #include <glad/glad.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
-static GLuint screen_program = 0;
-
-/* Read a text file. Adds a null terminator, not included in *size. */
-static char *
-read_file(const char *filename, long *const size)
+struct ctx
 {
-	FILE *file;
-	char *buf;
-	size_t read;
+	glwin *win;
+	glctx *ctx;
 
-	fopen_s(&file, filename, "r");
-	if (!file) return 0;
-
-	fseek(file, 0, SEEK_END);
-	*size = ftell(file);
-	fseek(file, 0, SEEK_SET);
-
-	buf = malloc(((size_t)*size) + 1);
-	if (!buf)
+	struct
 	{
-		fclose(file);
-		return 0;
-	}
+		GLuint screen;
+		GLint screen_color_unif;
+	} programs;
 
-	read = fread_s(buf, *size, 1, *size, file);
-
-	fclose(file);
-
-	buf[read] = 0;
-	return buf;
-}
-
-/* Compile a shader from its source file */
-static GLuint
-compile_shader(const char *name, GLenum type)
-{
-	GLuint result;
-	char *buf;
-	long bufsize;
-	GLint success;
-	GLchar error_log[1024];
-
-	buf = read_file(name, &bufsize);
-	result = glCreateShader(type);
-	if (!result)
+	struct
 	{
-		free(buf);
-		return 0;
-	}
+		GLuint tri_vao;
+		GLuint tri_vbo;
+	} objects;
 
-	glShaderSource(result, 1, &buf, NULL);
-	glCompileShader(result);
+	glthread *worker;
+};
 
-	glGetShaderiv(result, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		printf("'%s':\n", name);
-		glGetShaderInfoLog(result, sizeof(error_log), NULL, error_log);
-		puts(error_log);
+extern GLuint compile_shader(const char *name, GLenum type);
+extern GLuint link_shaders(GLuint vert, GLuint frag);
 
-		glDeleteShader(result);
-		return 0;
-	}
-
-	free(buf);
-
-	return result;
-}
-
-/* Link a vertex and fragment shader and return a program */
-static GLuint
-link_shaders(GLuint vert, GLuint frag)
-{
-	GLuint program;
-	GLint success;
-	GLchar error_log[1024];
-
-	if (!vert || !frag)
-	{
-		glDeleteShader(vert);
-		glDeleteShader(frag);
-		return 0;
-	}
-
-	program = glCreateProgram();
-	if (!program) return 0;
-
-	glAttachShader(program, vert);
-	glAttachShader(program, frag);
-
-	glLinkProgram(program);
-
-	glGetProgramiv(program, GL_LINK_STATUS, &success);
-	if (!success)
-	{
-		printf("error linking '%u' and '%u'\n", vert, frag);
-		glGetProgramInfoLog(program, sizeof(error_log), NULL, error_log);
-		puts(error_log);
-
-		glDeleteProgram(program);
-		glDeleteShader(vert);
-		glDeleteShader(frag);
-		return 0;
-	}
-
-	glDeleteShader(vert);
-	glDeleteShader(frag);
-	return program;
-}
+static int loader_worker(struct ctx *prog_ctx);
 
 static int
-load_shaders()
+load_shaders(struct ctx *prog_ctx)
 {
 	GLuint vert, frag;
 	GLuint program;
@@ -124,19 +40,19 @@ load_shaders()
 	vert = compile_shader("shaders/screen_vert.glsl", GL_VERTEX_SHADER);
 	frag = compile_shader("shaders/screen_frag.glsl", GL_FRAGMENT_SHADER);
 	program = link_shaders(vert, frag);
-	if (program) screen_program = program;
+	prog_ctx->programs.screen = program;
 
 	return 0;
 }
 
 /* Destroy shaders */
 static void
-destroy_shaders()
+destroy_shaders(struct ctx *prog_ctx)
 {
-	if (screen_program)
+	if (prog_ctx->programs.screen)
 	{
-		glDeleteShader(screen_program);
-		screen_program = 0;
+		glDeleteShader(prog_ctx->programs.screen);
+		prog_ctx->programs.screen = 0;
 	}
 }
 
@@ -144,30 +60,20 @@ int
 main(int argc, char *argv[])
 {
 	const float one_third_2pi = 2.0943951f;
-	glwin *win;
-	glctx *ctx;
+	struct ctx prog_ctx = { 0 };
 	int width, height;
 	GLfloat r, g, b;
-	GLint color_unif;
-
-	/* triangle vertex data */
-	GLuint tri_vao, tri_vbo;
-	GLfloat vbo_data[] = {
-		// pos			// color
-		-1.0f, -1.0f,	1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
-		1.0f, -1.0f,	0.0f, 0.0f, 1.0f
-	};
+	GLfloat back;
 
 	mtgl_init();
 
 	/* create a window and OpenGL context */
-	win = glwin_create(800, 600);
-	ctx = glctx_create(win, 3, 3);
+	prog_ctx.win = glwin_create(800, 600);
+	prog_ctx.ctx = glctx_create(prog_ctx.win, 3, 3);
 
-	glctx_set_swap_interval(ctx, 1); // enable vsync
+	glctx_set_swap_interval(prog_ctx.ctx, 1); // enable vsync
 
-	glctx_acquire(ctx);
+	glctx_acquire(prog_ctx.ctx);
 
 	gladLoadGLLoader(glctx_get_proc); // load OpenGL functions
 
@@ -175,16 +81,107 @@ main(int argc, char *argv[])
 	printf("OpenGL:  %s\n", glGetString(GL_VERSION));
 	printf("GLSL:    %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-	load_shaders();
-	color_unif = glGetUniformLocation(screen_program, "uColor");
+	glctx_release(prog_ctx.ctx);
+
+	/* create a worker thread to load OpenGL resources */
+	prog_ctx.worker = glthread_create(prog_ctx.ctx, loader_worker, &prog_ctx);
+
+	glwin_show_window(prog_ctx.win, 1); // show the window
+
+	/* loop until the window should close */
+	while (!glwin_should_close(prog_ctx.win))
+	{
+		glwin_get_size(prog_ctx.win, &width, &height);
+
+		r = sinf(glwin_get_time(prog_ctx.win)) * 0.5f + 0.5f;
+		g = sinf(glwin_get_time(prog_ctx.win) + one_third_2pi) * 0.5f + 0.5f;
+		b = sinf(glwin_get_time(prog_ctx.win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
+
+		glctx_acquire(prog_ctx.ctx);
+
+		/* update viewport to match window size*/
+		glViewport(0, 0, width, height);
+
+		glClearColor(r,g,b, 1);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		/* draw the triangle */
+		if (prog_ctx.objects.tri_vao && prog_ctx.programs.screen)
+		{
+			glUseProgram(prog_ctx.programs.screen);
+
+			glUniform3f(prog_ctx.programs.screen_color_unif, r, g, b);
+
+			glBindVertexArray(prog_ctx.objects.tri_vao);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		}
+
+		glctx_release(prog_ctx.ctx);
+
+		/* swap front and back buffers and poll window events */
+		glwin_swap_buffers(prog_ctx.win);
+		glwin_poll_events(prog_ctx.win);
+	}
+
+	glthread_join(prog_ctx.worker);
+	prog_ctx.worker = 0;
+
+	/* cleanup OpenGL resources */
+	glctx_acquire(prog_ctx.ctx);
+
+	glDeleteBuffers(1, &prog_ctx.objects.tri_vbo);
+	glDeleteVertexArrays(1, &prog_ctx.objects.tri_vao);
+
+	destroy_shaders(&prog_ctx);
+	glctx_release(prog_ctx.ctx);
+
+	/* destroy the OpenGL context and window */
+	glctx_destroy(prog_ctx.ctx);
+	glwin_destroy(prog_ctx.win);
+
+	mtgl_done();
+
+	return 0;
+}
+
+static int
+loader_worker(struct ctx *prog_ctx)
+{
+	const float one_third_2pi = 2.0943951f;
+
+	glwin *win = prog_ctx->win;
+	glctx *ctx = prog_ctx->ctx;
+
+	/* triangle vertex data */
+	GLfloat vbo_data[] = {
+		// pos			// color
+		-1.0f, -1.0f,	1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+		1.0f, -1.0f,	0.0f, 0.0f, 1.0f
+	};
+
+	glctx_acquire(ctx);
+
+	load_shaders(prog_ctx);
+
+	prog_ctx->programs.screen_color_unif = glGetUniformLocation(prog_ctx->programs.screen, "uColor");
+
+	glctx_release(ctx);
+
+	// some long cpu work
+	Sleep(3000);
+
+	glctx_acquire(ctx);
+
+	printf("Loading triangle on another thread!\n");
 
 	/* Create the triangle */
-	glGenVertexArrays(1, &tri_vao);
-	glGenBuffers(1, &tri_vbo);
+	glGenVertexArrays(1, &prog_ctx->objects.tri_vao);
+	glGenBuffers(1, &prog_ctx->objects.tri_vbo);
 
-	glBindVertexArray(tri_vao);
+	glBindVertexArray(prog_ctx->objects.tri_vao);
 
-	glBindBuffer(GL_ARRAY_BUFFER, tri_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, prog_ctx->objects.tri_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vbo_data), vbo_data, GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0);
@@ -196,58 +193,9 @@ main(int argc, char *argv[])
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	glClearColor(0, 0, 0, 1);
+	printf("Triangle done loading!\n");
 
 	glctx_release(ctx);
-
-	glwin_show_window(win, 1); // show the window
-
-	/* loop until the window should close */
-	while (!glwin_should_close(win))
-	{
-		glwin_get_size(win, &width, &height);
-
-		glctx_acquire(ctx);
-
-		/* update viewport to match window size*/
-		glViewport(0, 0, width, height);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		/* draw the triangle */
-		if (screen_program)
-		{
-			glUseProgram(screen_program);
-
-			r = sinf(glwin_get_time(win)) * 0.5f + 0.5f;
-			g = sinf(glwin_get_time(win) + one_third_2pi) * 0.5f + 0.5f;
-			b = sinf(glwin_get_time(win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
-			glUniform3f(color_unif, r, g, b);
-
-			glBindVertexArray(tri_vao);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
-		}
-
-		glctx_release(ctx);
-
-		/* swap front and back buffers and poll window events */
-		glwin_swap_buffers(win);
-		glwin_poll_events(win);
-	}
-
-	/* cleanup OpenGL resources */
-	glctx_acquire(ctx);
-
-	glDeleteBuffers(1, &tri_vbo);
-	glDeleteVertexArrays(1, &tri_vao);
-
-	destroy_shaders();
-	glctx_release(ctx);
-
-	/* destroy the OpenGL context and window */
-	glctx_destroy(ctx);
-	glwin_destroy(win);
-
-	mtgl_done();
 
 	return 0;
 }

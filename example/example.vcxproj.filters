@@ -39,6 +39,9 @@
     <ClCompile Include="dependencies\src\glad\glad.c">
       <Filter>ext\glad</Filter>
     </ClCompile>
+    <ClCompile Include="shaders.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\mtgl\src\glwin_private.h">

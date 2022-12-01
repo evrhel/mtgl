@@ -15,7 +15,6 @@ static DWORD __stdcall
 glthread_entry(glthread *thread)
 {
 	thread->result = thread->entry(thread->param1);
-	glctx_destroy(thread->ctx);
 	return 0;
 }
 

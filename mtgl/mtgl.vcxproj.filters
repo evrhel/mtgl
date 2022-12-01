@@ -29,7 +29,7 @@
     <ClInclude Include="src\glwin_private.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\mtgl.h">
+    <ClInclude Include="include\mtgl\mtgl.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -158,8 +158,8 @@
     <ClCompile Include="src\mtgl.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\mtgl\mtgl.h" />
     <ClInclude Include="src\glwin_private.h" />
-    <ClInclude Include="src\mtgl.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

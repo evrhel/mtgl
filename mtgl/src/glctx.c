@@ -6,8 +6,15 @@
 #include "GL/glcorearb.h"
 #include "GL/wglext.h"
 
+enum ctxtype
+{
+	ctxtype_root,
+	ctxtype_child
+};
+
 struct glctx
 {
+	enum ctxtype type;
 	glwin *win;
 	HGLRC hglrc;
 	gllock *lock;
@@ -196,6 +203,7 @@ glctx_create(glwin *win, int ver_major, int ver_minor)
 	ctx->hglrc = wglCreateContextAttribsARB(win->hdc, 0, aiContextAttributes);
 	if (!ctx->hglrc) goto failure;
 
+	ctx->type = ctxtype_root;
 	ctx->win = win;
 	ctx->ver_major = ver_major;
 	ctx->ver_minor = ver_minor;
@@ -251,6 +259,7 @@ glctx_clone(glctx *ctx)
 	cloned->lock = gllock_create();
 	if (!cloned->lock) goto failure;
 
+	cloned->type = ctxtype_child;
 	cloned->win = ctx->win;
 	cloned->ver_major = ctx->ver_major;
 	cloned->ver_minor = ctx->ver_minor;
@@ -288,6 +297,18 @@ glctx_acquire(glctx *ctx)
 	ctx->nesting++;
 	if (ctx->nesting == 1)
 		wglMakeCurrent(ctx->win->hdc, ctx->hglrc);
+}
+
+int
+glctx_try_acquire(glctx *ctx)
+{
+	if (!gllock_try_acquire(ctx->lock)) return 0;
+
+	ctx->nesting++;
+	if (ctx->nesting == 1)
+		wglMakeCurrent(ctx->win->hdc, ctx->hglrc);
+
+	return 1;
 }
 
 void
