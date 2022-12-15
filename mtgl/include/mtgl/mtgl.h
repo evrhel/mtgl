@@ -19,6 +19,7 @@ extern "C" {
 	typedef void(*glwin_char_cb_fn)(glwin *win, unsigned int code, int repeat_count, int mods);
 	typedef void(*glwin_mouse_button_cb_fn)(glwin *win, int button, enum glwin_key_state action, int mods);
 	typedef void(*glwin_mouse_event_cb_fn)(glwin *win, int entered);
+	typedef void(*glwin_window_event_cb_fn)(glwin *win, enum glwin_window_event event, int param1, int param2);
 
 	enum win_event_type
 	{
@@ -27,6 +28,7 @@ extern "C" {
 		glwin_event_key,
 		glwin_event_char,
 		glwin_event_mouse_button,
+		glwin_event_window_event,
 
 		glwin_event_last = 16
 	};
@@ -35,7 +37,8 @@ extern "C" {
 	gllock *mtgl_get_lock();
 	void mtgl_done();
 
-	glwin *glwin_create(int width, int height, void *user_data);
+	glwin *glwin_create(const char *title, int width, int height, void *user_data);
+	void glwin_set_title(glwin *win, const char *title);
 	void *glwin_get_user_data(glwin *win);
 	void glwin_show_window(glwin *win, int shown);
 	int glwin_should_close(glwin *win);
@@ -46,9 +49,12 @@ extern "C" {
 	int glwin_was_resized(glwin *win);
 	void glwin_get_size(glwin *win, int *width, int *height);
 	void glwin_set_size(glwin *win, int width, int height);
+	void glwin_get_pos(glwin *win, int *x, int *y);
+	void glwin_set_pos(glwin *win, int x, int y);
 	void glwin_get_mouse_pos(glwin *win, int *x, int *y);
 	enum glwin_key_state glwin_get_key(glwin *win, int key);
 	enum glwin_key_state glwin_get_mouse_button(glwin *win, int key);
+	int glwin_has_focus(glwin *win);
 	float glwin_get_time(glwin *win);
 	void glwin_destroy(glwin *win);
 

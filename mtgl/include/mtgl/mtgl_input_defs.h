@@ -4,6 +4,16 @@
 extern "C" {
 #endif
 
+	enum glwin_window_event
+	{
+		glwin_window_maximize,
+		glwin_window_restore,
+		glwin_window_minimize,
+		glwin_window_closing,
+		glwin_window_move,
+		glwin_window_changefocus
+	};
+
 	enum glwin_key_state
 	{
 		glwin_released,

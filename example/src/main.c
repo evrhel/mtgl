@@ -66,6 +66,13 @@ destroy_shaders(struct ctx *prog_ctx)
 	}
 }
 
+static void
+char_callback(glwin *win, unsigned int code, int repeat_count, int mods)
+{
+	for (; repeat_count > 0; repeat_count--)
+		putchar(code);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -83,10 +90,11 @@ main(int argc, char *argv[])
 	mtgl_init();
 
 	/* create a window and OpenGL context */
-	prog_ctx.win = glwin_create(800, 600, &prog_ctx);
+	prog_ctx.win = glwin_create("OpenGL Window", 800, 600, &prog_ctx);
 	prog_ctx.ctx = glctx_create(prog_ctx.win, 3, 3);
 
 	glwin_set_event_callback(prog_ctx.win, glwin_event_resize, window_resized);
+	glwin_set_event_callback(prog_ctx.win, glwin_event_char, char_callback);
 
 	glctx_set_swap_interval(prog_ctx.ctx, 1); // enable vsync
 

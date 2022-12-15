@@ -42,6 +42,13 @@ extern "C" {
 			enum glwin_key_state action;
 			int mods;
 		} mouse_button;
+
+		struct
+		{
+			enum glwin_window_event event;
+			int param1;
+			int param2;
+		} window_event;
 	};
 
 
@@ -60,6 +67,7 @@ extern "C" {
 		glwin_key_cb_fn on_key;
 		glwin_char_cb_fn on_char;
 		glwin_mouse_button_cb_fn on_mouse_button;
+		glwin_window_event_cb_fn on_window_event;
 	};
 
 	struct glwin
@@ -71,6 +79,7 @@ extern "C" {
 		int should_close;
 		int was_resized;
 		int width, height;
+		int x, y;
 		int mx, my;
 		int dmx, dmy;
 		int focused;
