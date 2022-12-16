@@ -10,6 +10,7 @@ extern "C" {
 	typedef struct glctx glctx;
 	typedef struct glthread glthread;
 	typedef struct gllock gllock;
+	typedef struct mtgldevice mtgldevice;
 
 	typedef int(*glthread_fn)(void *);
 
@@ -21,23 +22,23 @@ extern "C" {
 	typedef void(*glwin_mouse_event_cb_fn)(glwin *win, int entered);
 	typedef void(*glwin_window_event_cb_fn)(glwin *win, enum glwin_window_event event, int param1, int param2);
 
-	enum win_event_type
+	struct mtgldevice
 	{
-		glwin_event_resize,
-		glwin_event_mouse_move,
-		glwin_event_key,
-		glwin_event_char,
-		glwin_event_mouse_button,
-		glwin_event_window_event,
-
-		glwin_event_last = 16
+		enum mtgl_device_type type;
+		int id;
+		int is_primary;
+		char name[128];
+		char string[128];
 	};
 
 	int mtgl_init();
 	gllock *mtgl_get_lock();
+	void *mtgl_enumerate_devices(void *it, mtgldevice *device, int filter);
+	void mtgl_enumerate_devices_done(void *it);
+	const char *mtgl_device_type_string(enum mtgl_device_type type);
 	void mtgl_done();
 
-	glwin *glwin_create(const char *title, int width, int height, void *user_data);
+	glwin *glwin_create(const char *title, int width, int height, int flags, int device, void *user_data);
 	void glwin_set_title(glwin *win, const char *title);
 	void *glwin_get_user_data(glwin *win);
 	void glwin_show_window(glwin *win, int shown);
@@ -48,7 +49,9 @@ extern "C" {
 	void glwin_set_event_callback(glwin *win, enum win_event_type type, void *cb);
 	int glwin_was_resized(glwin *win);
 	void glwin_get_size(glwin *win, int *width, int *height);
+	void glwin_get_full_size(glwin *win, int *width, int *height);
 	void glwin_set_size(glwin *win, int width, int height);
+	void glwin_set_full_size(glwin *win, int width, int height);
 	void glwin_get_pos(glwin *win, int *x, int *y);
 	void glwin_set_pos(glwin *win, int x, int y);
 	void glwin_get_mouse_pos(glwin *win, int *x, int *y);

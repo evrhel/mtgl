@@ -4,6 +4,40 @@
 extern "C" {
 #endif
 
+	enum mtgl_device_type
+	{
+		mtgl_device_type_none = 0x00,
+
+		mtgl_device_type_graphics = 0x01,
+		mtgl_device_type_mouse = 0x02,
+		mtgl_device_type_keyboard = 0x04,
+		mtgl_device_type_gamepad = 0x08,
+		mtgl_device_type_audio_out = 0x10,
+		mtgl_device_type_audio_in = 0x20,
+
+		mtgl_device_type_any = -1
+	};
+
+	enum win_event_type
+	{
+		glwin_event_resize,
+		glwin_event_mouse_move,
+		glwin_event_key,
+		glwin_event_char,
+		glwin_event_mouse_button,
+		glwin_event_window_event,
+
+		glwin_event_last = 16
+	};
+
+	enum glwin_window_flag
+	{
+		glwin_wf_raw_keyboard_input = 0x1,
+		glwin_wf_raw_mouse_input = 0x2,
+		glwin_wf_raw_input_mask =
+			glwin_wf_raw_keyboard_input | glwin_wf_raw_mouse_input
+	};
+
 	enum glwin_window_event
 	{
 		glwin_window_maximize,

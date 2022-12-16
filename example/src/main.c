@@ -73,6 +73,23 @@ char_callback(glwin *win, unsigned int code, int repeat_count, int mods)
 		putchar(code);
 }
 
+static const char *
+device_type_string(enum mtgl_device_type type)
+{
+	switch (type)
+	{
+	case mtgl_device_type_none: return "none";
+	case mtgl_device_type_graphics: return "graphics";
+	case mtgl_device_type_mouse: return "mouse";
+	case mtgl_device_type_keyboard: return "keyboard";
+	case mtgl_device_type_gamepad: return "gamepad";
+	case mtgl_device_type_audio_out: return "audio out";
+	case mtgl_device_type_audio_in: return "audio in";
+	case mtgl_device_type_any: return "any";
+	default: return "unknown";
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -86,11 +103,24 @@ main(int argc, char *argv[])
 	int num_frames = 0;
 	float start, end;
 	int acquired;
+	void *it = 0;
+	mtgldevice device;
 
 	mtgl_init();
 
+
+	while (it = mtgl_enumerate_devices(it, &device, mtgl_device_type_any))
+	{
+		printf("%s device:\n", device_type_string(device.type));
+		printf("  id = %d\n", device.id);
+		printf("  name: %s\n", device.name);
+		printf("  string: %s\n", device.string);
+		printf("  is_primary: %d\n", device.is_primary);
+	}
+	mtgl_enumerate_devices_done(it);
+
 	/* create a window and OpenGL context */
-	prog_ctx.win = glwin_create("OpenGL Window", 800, 600, &prog_ctx);
+	prog_ctx.win = glwin_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
 	prog_ctx.ctx = glctx_create(prog_ctx.win, 3, 3);
 
 	glwin_set_event_callback(prog_ctx.win, glwin_event_resize, window_resized);

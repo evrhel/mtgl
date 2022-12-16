@@ -80,18 +80,20 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	USHORT vk;
 	struct event event;
 	int button_id, button_num;
-	LPCREATESTRUCT lpCreateStruct;
+	LPCREATESTRUCTA lpCreateStruct;
 
 	win = (glwin *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 
 	switch (uMsg)
 	{
 	case WM_NCCREATE: {
-		SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG)((LPCREATESTRUCTA)lParam)->lpCreateParams);
+		//SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG)((LPCREATESTRUCTA)lParam)->lpCreateParams);
 		return TRUE;
 	}
 	case WM_CREATE: {
-		lpCreateStruct = (LPCREATESTRUCT)lParam;
+		lpCreateStruct = (LPCREATESTRUCTA)lParam;
+		win = lpCreateStruct->lpCreateParams;
+		SetWindowLongPtrA(hwnd, GWLP_USERDATA, win);
 		win->x = lpCreateStruct->x;
 		win->y = lpCreateStruct->y;
 		win->width = lpCreateStruct->cx;
@@ -180,6 +182,16 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		event.data.char_.repeat_count = (int)(0x0f & lParam);
 		event.data.char_.mods = 0;
 		push_event(win, &event);
+		return 0;
+	}
+	case WM_KEYDOWN: {
+		if (win->flags & glwin_wf_raw_keyboard_input) break;
+
+		return 0;
+	}
+	case WM_KEYUP: {
+		if (win->flags & glwin_wf_raw_keyboard_input) break;
+
 		return 0;
 	}
 	case WM_INPUT: {
@@ -325,7 +337,7 @@ dispatch_events(glwin *win)
 }
 
 glwin *
-glwin_create(const char *title, int width, int height, void *user_data)
+glwin_create(const char *title, int width, int height, int flags, int device, void *user_data)
 {
 	HINSTANCE hInstance;
 	glwin *win = 0;
@@ -357,6 +369,8 @@ glwin_create(const char *title, int width, int height, void *user_data)
 	win->lock = gllock_create();
 	if (!win->lock) goto failure;
 
+	win->flags = flags;
+
 	/* create the window */
 	dwStyle = WS_OVERLAPPEDWINDOW;
 	win->hwnd = CreateWindowExA(
@@ -384,18 +398,27 @@ glwin_create(const char *title, int width, int height, void *user_data)
 
 	/* register input devices */
 
-	win->rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-	win->rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-	win->rid[0].dwFlags = 0;
-	win->rid[0].hwndTarget = win->hwnd;
+	if (flags & glwin_wf_raw_mouse_input)
+	{
+		win->rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		win->rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+		win->rid[0].dwFlags = RIDEV_NOLEGACY;
+		win->rid[0].hwndTarget = win->hwnd;
 
-	win->rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
-	win->rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-	win->rid[1].dwFlags = 0;
-	win->rid[1].hwndTarget = win->hwnd;
+		if (!RegisterRawInputDevices(&win->rid[0], 1, sizeof(win->rid[0])))
+			goto failure;
+	}
 
-	if (!RegisterRawInputDevices(win->rid, 2, sizeof(win->rid[0])))
-		goto failure;
+	if (flags & glwin_wf_raw_keyboard_input)
+	{
+		win->rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		win->rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+		win->rid[1].dwFlags = RIDEV_NOLEGACY;
+		win->rid[1].hwndTarget = win->hwnd;
+
+		if (!RegisterRawInputDevices(&win->rid[1], 1, sizeof(win->rid[1])))
+			goto failure;
+	}
 
 	win_class_refs++;
 	gllock_release(mtgl_get_lock());
@@ -543,11 +566,30 @@ glwin_get_size(glwin *win, int *const width, int *const height)
 }
 
 void
+glwin_get_full_size(glwin *win, int *width, int *height)
+{
+	RECT rc;
+
+	gllock_acquire(win->lock);
+	GetWindowRect(win->hwnd, &rc);
+	gllock_release(win->lock);
+
+	*width = rc.right - rc.left;
+	*height = rc.bottom - rc.top;
+}
+
+void
 glwin_set_size(glwin *win, int width, int height)
 {
 	gllock_acquire(win->lock);
 	SetWindowPos(win->hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOOWNERZORDER);
 	gllock_release(win->lock);
+}
+
+void
+glwin_set_full_size(glwin *win, int width, int height)
+{
+	glwin_set_size(win, width, height);
 }
 
 void

@@ -76,6 +76,7 @@ extern "C" {
 		HDC hdc;
 		glctx *main;
 		gllock *lock;
+		int flags;
 		int should_close;
 		int was_resized;
 		int width, height;
