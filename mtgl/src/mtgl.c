@@ -23,12 +23,13 @@ struct device_iterator
 static gllock *lock;
 
 #define rnd(dt, filter) { *(filter) &= ~(dt); return (dt); }
-static inline enum mtgl_device_type next_device(int *filter)
+static inline enum mtgl_device_type
+next_device(int *filter)
 {
 	if (*filter & mtgl_device_type_graphics) rnd(mtgl_device_type_graphics, filter)
 	else if (*filter & mtgl_device_type_mouse) rnd(mtgl_device_type_mouse, filter)
 	else if (*filter & mtgl_device_type_keyboard) rnd(mtgl_device_type_keyboard, filter)
-	else if (*filter & mtgl_device_type_gamepad) rnd(mtgl_device_type_gamepad, filter)
+	else if (*filter & mtgl_device_type_joystick) rnd(mtgl_device_type_joystick, filter)
 	else if (*filter & mtgl_device_type_audio_out) rnd(mtgl_device_type_audio_out, filter)
 	else if (*filter & mtgl_device_type_audio_in) rnd(mtgl_device_type_audio_in, filter)
 	else rnd(mtgl_device_type_none, filter)
@@ -203,6 +204,75 @@ mtgl_enumerate_devices_done(void *it)
 
 		free(it);
 	}
+}
+
+int
+mtgl_get_joystick_count()
+{
+	return joyGetNumDevs();
+}
+
+int
+mtgl_get_joystick_info(enum glwin_joystick_id id, mtgljoystickinfo *info)
+{
+	JOYCAPSA caps;
+	MMRESULT result;
+
+	if (id == -1) return mtgl_device_disconnected;
+
+	result = joyGetDevCapsA(id, &caps, sizeof(JOYCAPS2));
+	if (result != JOYERR_NOERROR) return mtgl_device_disconnected;
+
+	memset(info, 0, sizeof(*info));
+
+	info->xmin = caps.wXmin; info->xmax = caps.wXmax;
+	info->ymin = caps.wYmin; info->ymax = caps.wYmax;
+	info->zmin = caps.wZmin; info->zmax = caps.wZmax;
+
+	info->rmin = caps.wRmin; info->rmax = caps.wRmax;
+	info->umin = caps.wUmin; info->umax = caps.wUmax;
+	info->vmin = caps.wVmin; info->vmax = caps.wVmax;
+	
+	info->poll_min = caps.wPeriodMin; info->poll_max = caps.wPeriodMax;
+
+	info->button_count = caps.wNumButtons; info->max_buttons = caps.wMaxButtons;
+	info->num_axes = caps.wNumAxes; info->max_axes = caps.wMaxAxes;
+
+	info->manufacturer_id = caps.wMid;
+	info->product_id = caps.wPid;
+
+	strcpy_s(info->manufacturer, sizeof(info->manufacturer), caps.szOEMVxD);
+	strcpy_s(info->product, sizeof(info->product), caps.szPname);
+
+	return mtgl_device_connected;
+}
+
+int
+glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, mtglrawjoystickstate *state)
+{
+	JOYINFOEX info;
+	MMRESULT result;
+
+	info.dwSize = sizeof(info);
+	info.dwFlags = JOY_RETURNALL;
+
+	result = joyGetPosEx(id, &info);
+	switch (result)
+	{
+	case JOYERR_NOERROR: break;
+	case JOYERR_UNPLUGGED:
+	case MMSYSERR_INVALPARAM:
+	case MMSYSERR_BADDEVICEID: return mtgl_device_disconnected;
+	case MMSYSERR_NODRIVER: return mtgl_device_driver_error;
+	default: return mtgl_device_error;
+	}
+
+	state->buttons = info.dwButtons;
+	state->xpos = info.dwXpos;
+	state->ypos = info.dwYpos;
+	state->zpos = info.dwZpos;
+
+	return mtgl_device_connected;
 }
 
 void

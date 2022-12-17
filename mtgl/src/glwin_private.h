@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include <hidsdi.h>
 
 #include <mtgl/mtgl.h>
 
@@ -49,6 +50,18 @@ extern "C" {
 			int param1;
 			int param2;
 		} window_event;
+
+		struct
+		{
+			enum mtgl_device_type type;
+			enum mtgl_device_state state;
+			int id;
+		} device_event;
+
+		struct
+		{
+			void *data;
+		} user_event;
 	};
 
 
@@ -68,6 +81,8 @@ extern "C" {
 		glwin_char_cb_fn on_char;
 		glwin_mouse_button_cb_fn on_mouse_button;
 		glwin_window_event_cb_fn on_window_event;
+		glwin_device_event_cb_fn on_device_event;
+		glwin_user_event_cb_fn on_user_event;
 	};
 
 	struct glwin
@@ -76,6 +91,7 @@ extern "C" {
 		HDC hdc;
 		glctx *main;
 		gllock *lock;
+		HANDLE hHeap;
 		int flags;
 		int should_close;
 		int was_resized;
@@ -93,6 +109,7 @@ extern "C" {
 		SHORT wheel;
 
 		RAWINPUTDEVICE rid[2];
+		PHIDP_PREPARSED_DATA ppd;
 
 		union callback callbacks[glwin_event_last];
 
@@ -104,6 +121,8 @@ extern "C" {
 		LARGE_INTEGER start;
 		LARGE_INTEGER freq;
 	};
+
+	int push_event(glwin *, struct event *);
 
 #ifdef __cplusplus
 }

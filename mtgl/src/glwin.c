@@ -1,16 +1,7 @@
 #include "glwin_private.h"
+#include "mtgl_input_private.h"
 
 #include <assert.h>
-
-#ifndef HID_USAGE_PAGE_GENERIC
-#define HID_USAGE_PAGE_GENERIC ((USHORT)0x1)
-#endif
-#ifndef HID_USAGE_GENERIC_MOUSE
-#define HID_USAGE_GENERIC_MOUSE ((USHORT)0x2)
-#endif
-#ifndef HID_USAGE_GENERIC_KEYBOARD
-#define HID_USAGE_GENERIC_KEYBOARD ((USHORT)0x6)
-#endif
 
 static const char win_class_name[] = "glwin";
 static int win_class_refs = 0;
@@ -27,23 +18,7 @@ error(glwin *win, const char *msg)
 	return 2;
 }
 
-// Map virtual key code with modifier keys
-static inline USHORT
-map_vk(USHORT vk, UINT scan_code, UINT flags)
-{
-	switch (vk)
-	{
-	case 0xff:
-		return 0;
-	case VK_SHIFT:
-		return MapVirtualKeyA(scan_code, MAPVK_VSC_TO_VK_EX);
-	case VK_NUMLOCK:
-		return MapVirtualKeyA(vk, MAPVK_VK_TO_VSC) | 0x100;
-	}
-	return vk;
-}
-
-static int
+int
 push_event(glwin *win, struct event *evt)
 {
 	if (win->event_last == GLWIN_EVENT_QUEUE_SIZE)
@@ -54,18 +29,6 @@ push_event(glwin *win, struct event *evt)
 	win->event_last++;
 
 	return 0;
-}
-
-static int
-push_button_event(glwin *win, struct event *event, int action, int button)
-{
-	win->aMouseButtonStates[glwin_mouse1] = glwin_pressed;
-
-	event->type = glwin_event_mouse_button;
-	event->data.mouse_button.action = glwin_pressed;
-	event->data.mouse_button.button = glwin_mouse1;
-	event->data.mouse_button.mods = win->mods;
-	return push_event(win, event);
 }
 
 /* Windows event handler */
@@ -81,6 +44,8 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	struct event event;
 	int button_id, button_num;
 	LPCREATESTRUCTA lpCreateStruct;
+	PDEV_BROADCAST_DEVICEINTERFACE_A pDevInterface;
+	HANDLE hDevice;
 
 	win = (glwin *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 
@@ -176,92 +141,18 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		push_event(win, &event);
 		return 0;
 	}
-	case WM_CHAR: {
-		event.type = glwin_event_char;
-		event.data.char_.code = (UINT)wParam;
-		event.data.char_.repeat_count = (int)(0x0f & lParam);
-		event.data.char_.mods = 0;
-		push_event(win, &event);
+	case WM_INPUT_DEVICE_CHANGE: {
+		handle_input_device_event(win, lParam, wParam == GIDC_ARRIVAL ? mtgl_device_connected : mtgl_device_disconnected);
 		return 0;
 	}
-	case WM_KEYDOWN: {
-		if (win->flags & glwin_wf_raw_keyboard_input) break;
-
-		return 0;
-	}
-	case WM_KEYUP: {
-		if (win->flags & glwin_wf_raw_keyboard_input) break;
-
-		return 0;
-	}
-	case WM_INPUT: {
-
-		if (!win->focused)
-			return 0;
-		
-		cbSize = sizeof(RAWINPUT);
-		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &cbSize, sizeof(RAWINPUTHEADER));
-
-		switch (raw->header.dwType)
-		{
-		case RIM_TYPEMOUSE: {
-			rm = &raw->data.mouse;
-
-			if (rm->lLastX || rm->lLastY)
-			{
-				win->dmx += rm->lLastX;
-				win->dmy -= rm->lLastY;
-			}
-
-			if (rm->usButtonFlags & RI_MOUSE_WHEEL)
-				win->wheel += (*(SHORT *)&rm->usButtonData) / WHEEL_DELTA;
-
-			button_id = RI_MOUSE_BUTTON_1_DOWN;
-			for (button_num = 0; button_num < 5; button_num++, button_id <<= 2)
-			{
-				if (rm->usButtonFlags & (button_id)) push_button_event(win, &event, glwin_pressed, glwin_mouse1 + button_id);
-				if (rm->usButtonFlags & (button_id << 1)) push_button_event(win, &event, glwin_released, glwin_mouse1 + button_id);
-			}
-
-			break;
-		}
-		case RIM_TYPEKEYBOARD: {
-			rk = &raw->data.keyboard;
-			vk = map_vk(rk->VKey, rk->MakeCode, rk->Flags);
-
-			switch (rk->Message)
-			{
-			case WM_KEYDOWN: {
-				if (!win->aKeyStates[vk])
-				{
-					event.type = glwin_event_key;
-					event.data.key.action = win->aKeyStates[vk] = glwin_pressed;
-					event.data.key.key = vk;
-					event.data.key.mods = win->mods;
-					push_event(win, &event);
-				}
-				break;
-			}
-			case WM_KEYUP: {
-				event.type = glwin_event_key;
-				event.data.key.action = win->aKeyStates[vk] = glwin_released;
-				event.data.key.key = vk;
-				event.data.key.mods = win->mods;
-				push_event(win, &event);
-				break;
-			}
-			}
-
-			break;
-		}
-		case WM_SYSKEYDOWN:
-		case WM_SYSKEYUP:
-		case WM_SYSCHAR:
-			break;
-		}
-
-		return 0;
-	}
+	case WM_CHAR:
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYDOWN:
+	case WM_SYSKEYUP:
+	case WM_SYSCHAR:
+	case WM_INPUT: return mtgl_handle_input_message(win, hwnd, uMsg, wParam, lParam);
+		break;
 	}
 
 	return DefWindowProcA(hwnd, uMsg, wParam, lParam);
@@ -330,6 +221,12 @@ dispatch_events(glwin *win)
 			);
 			break;
 		}
+		case glwin_event_user1:
+		case glwin_event_user2:
+		case glwin_event_user3:
+		case glwin_event_user4:
+			callback.on_user_event(win, data->user_event.data);
+			break;
 		}
 	}
 
@@ -420,6 +317,8 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 			goto failure;
 	}
 
+	win->hHeap = GetProcessHeap();
+
 	win_class_refs++;
 	gllock_release(mtgl_get_lock());
 	return win;
@@ -488,6 +387,19 @@ glwin_set_should_close(glwin *win, int should_close)
 {
 	gllock_acquire(win->lock);
 	win->should_close = should_close;
+	gllock_release(win->lock);
+}
+
+void
+glwin_queue_event(glwin *win, enum win_event_type type, void *data)
+{
+	struct event evt;
+
+	evt.type = type;
+	evt.data.user_event.data = data;
+
+	gllock_acquire(win->lock);
+	push_event(win, &evt);
 	gllock_release(win->lock);
 }
 
@@ -626,6 +538,12 @@ glwin_get_time(glwin *win)
 	return (float)(li.QuadPart - win->start.QuadPart) / win->freq.QuadPart;
 }
 
+int
+glwin_get_joystick_state(glwin *win, enum glwin_joystick_id id, glwinjoystickstate *state)
+{
+
+}
+
 enum glwin_key_state
 glwin_get_key(glwin *win, int key)
 {
@@ -672,6 +590,8 @@ glwin_destroy(glwin *win)
 	if (!win) return;
 
 	gllock_acquire(mtgl_get_lock());
+
+	if (win->ppd) HeapFree(win->hHeap, 0, win->ppd);
 
 	ReleaseDC(win->hwnd, win->hdc);
 	DestroyWindow(win->hwnd);

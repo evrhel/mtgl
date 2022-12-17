@@ -11,11 +11,19 @@ extern "C" {
 		mtgl_device_type_graphics = 0x01,
 		mtgl_device_type_mouse = 0x02,
 		mtgl_device_type_keyboard = 0x04,
-		mtgl_device_type_gamepad = 0x08,
+		mtgl_device_type_joystick = 0x08,
 		mtgl_device_type_audio_out = 0x10,
 		mtgl_device_type_audio_in = 0x20,
 
 		mtgl_device_type_any = -1
+	};
+
+	enum mtgl_device_state
+	{
+		mtgl_device_connected = 0,
+		mtgl_device_disconnected,
+		mtgl_device_error,
+		mtgl_device_driver_error
 	};
 
 	enum win_event_type
@@ -26,16 +34,25 @@ extern "C" {
 		glwin_event_char,
 		glwin_event_mouse_button,
 		glwin_event_window_event,
+		glwin_event_device_event,
 
-		glwin_event_last = 16
+		glwin_event_user1 = 12,
+		glwin_event_user2,
+		glwin_event_user3,
+		glwin_event_user4,
+
+		glwin_event_last = glwin_event_user4 + 1
 	};
 
 	enum glwin_window_flag
 	{
 		glwin_wf_raw_keyboard_input = 0x1,
 		glwin_wf_raw_mouse_input = 0x2,
+		glwin_wf_raw_joystick_input = 0x4,
+		glwin_wf_raw_gamepad_input = 0x8,
 		glwin_wf_raw_input_mask =
-			glwin_wf_raw_keyboard_input | glwin_wf_raw_mouse_input
+			glwin_wf_raw_keyboard_input | glwin_wf_raw_mouse_input |
+			glwin_wf_raw_joystick_input | glwin_wf_raw_gamepad_input
 	};
 
 	enum glwin_window_event
@@ -60,7 +77,9 @@ extern "C" {
 		glwin_mouse2,
 		glwin_mouse3,
 		glwin_mouse4,
-		glwin_mouse5
+		glwin_mouse5,
+
+		glwin_mouse_button_count = glwin_mouse5 + 1
 	};
 
 	enum glwin_key
@@ -257,7 +276,107 @@ extern "C" {
 		glwin_play,
 		glwin_zoom,
 		glwin_pa1,
-		glwin_oem_clear
+		glwin_oem_clear,
+
+		glwin_key_count = 256
+	};
+
+	enum glwin_joystick_id
+	{
+		glwin_joystick1 = 0,
+		glwin_joystick2,
+		glwin_joystick3,
+		glwin_joystick4,
+		glwin_joystick5,
+		glwin_joystick6,
+		glwin_joystick7,
+		glwin_joystick8,
+		glwin_joystick9,
+		glwin_joystick10,
+		glwin_joystick11,
+		glwin_joystick12,
+		glwin_joystick13,
+		glwin_joystick14,
+		glwin_joystick15,
+
+		glwin_joystick_last = glwin_joystick15 + 1
+	};
+
+	enum glwin_gamepad_button
+	{
+		glwin_joystick_button1	= 0x00000001,
+		glwin_joystick_button2	= 0x00000002,
+		glwin_joystick_button3	= 0x00000004,
+		glwin_joystick_button4	= 0x00000008,
+		glwin_joystick_button5	= 0x00000010,
+		glwin_joystick_button6	= 0x00000020,
+		glwin_joystick_button7	= 0x00000040,
+		glwin_joystick_button8	= 0x00000080,
+		glwin_joystick_button9	= 0x00000100,
+		glwin_joystick_button10	= 0x00000200,
+		glwin_joystick_button11	= 0x00000400,
+		glwin_joystick_button12	= 0x00000800,
+		glwin_joystick_button13	= 0x00001000,
+		glwin_joystick_button14	= 0x00002000,
+		glwin_joystick_button15	= 0x00004000,
+		glwin_joystick_button16	= 0x00008000,
+		glwin_joystick_button17	= 0x00010000,
+		glwin_joystick_button18	= 0x00020000,
+		glwin_joystick_button19	= 0x00040000,
+		glwin_joystick_button20	= 0x00080000,
+		glwin_joystick_button21	= 0x00100000,
+		glwin_joystick_button22	= 0x00200000,
+		glwin_joystick_button23	= 0x00400000,
+		glwin_joystick_button24	= 0x00800000,
+		glwin_joystick_button25	= 0x01000000,
+		glwin_joystick_button26	= 0x02000000,
+		glwin_joystick_button27	= 0x04000000,
+		glwin_joystick_button28	= 0x08000000,
+		glwin_joystick_button29	= 0x10000000,
+		glwin_joystick_button30	= 0x20000000,
+		glwin_joystick_button31	= 0x40000000,
+		glwin_joystick_button32	= 0x80000000,
+
+		glwin_joystick_button_count = 32
+	};
+
+	typedef struct mtgljoystickinfo mtgljoystickinfo;
+	struct mtgljoystickinfo
+	{
+		int xmin, xmax;
+		int ymin, ymax;
+		int zmin, zmax;
+
+		int rmin, rmax;
+		int umin, umax;
+		int vmin, vmax;
+		
+		unsigned int poll_min, poll_max;
+	
+		int button_count, max_buttons;
+		int num_axes, max_axes;
+
+		unsigned short manufacturer_id;
+		unsigned short product_id;
+
+		char manufacturer[256];
+		char product[32];
+	};
+	
+	typedef struct mtglrawjoystickstate mtglrawjoystickstate;
+	struct mtglrawjoystickstate
+	{
+		int xpos, ypos, zpos;
+		int rpos, upos, vpos;
+		unsigned int buttons;
+	};
+
+	typedef struct glwinjoystickstate glwinjoystickstate;
+	struct glwinjoystickstate
+	{
+		float xpos, ypos, zpos;
+		float rpos, upos, vpos;
+		unsigned int buttons;
 	};
 
 #ifdef __cplusplus

@@ -21,6 +21,8 @@ extern "C" {
 	typedef void(*glwin_mouse_button_cb_fn)(glwin *win, int button, enum glwin_key_state action, int mods);
 	typedef void(*glwin_mouse_event_cb_fn)(glwin *win, int entered);
 	typedef void(*glwin_window_event_cb_fn)(glwin *win, enum glwin_window_event event, int param1, int param2);
+	typedef void(*glwin_device_event_cb_fn)(glwin *win, enum mtgl_device_type type, enum mtgl_device_state state, int id);
+	typedef void(*glwin_user_event_cb_fn)(glwin *win, void *data);
 
 	struct mtgldevice
 	{
@@ -35,7 +37,9 @@ extern "C" {
 	gllock *mtgl_get_lock();
 	void *mtgl_enumerate_devices(void *it, mtgldevice *device, int filter);
 	void mtgl_enumerate_devices_done(void *it);
-	const char *mtgl_device_type_string(enum mtgl_device_type type);
+	int mtgl_get_joystick_count();
+	int mtgl_get_joystick_info(enum glwin_joystick_id id, mtgljoystickinfo *info);
+	int glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, mtglrawjoystickstate *state);
 	void mtgl_done();
 
 	glwin *glwin_create(const char *title, int width, int height, int flags, int device, void *user_data);
@@ -44,6 +48,7 @@ extern "C" {
 	void glwin_show_window(glwin *win, int shown);
 	int glwin_should_close(glwin *win);
 	void glwin_set_should_close(glwin *win, int should_close);
+	void glwin_queue_event(glwin *win, enum win_event_type type, void *data);
 	void glwin_poll_events(glwin *win);
 	void glwin_swap_buffers(glwin *win);
 	void glwin_set_event_callback(glwin *win, enum win_event_type type, void *cb);
@@ -55,10 +60,11 @@ extern "C" {
 	void glwin_get_pos(glwin *win, int *x, int *y);
 	void glwin_set_pos(glwin *win, int x, int y);
 	void glwin_get_mouse_pos(glwin *win, int *x, int *y);
-	enum glwin_key_state glwin_get_key(glwin *win, int key);
-	enum glwin_key_state glwin_get_mouse_button(glwin *win, int key);
+	int glwin_get_key(glwin *win, int key);
+	int glwin_get_mouse_button(glwin *win, int key);
 	int glwin_has_focus(glwin *win);
 	float glwin_get_time(glwin *win);
+	int glwin_get_joystick_state(glwin *win, enum glwin_joystick_id id, glwinjoystickstate *state);
 	void glwin_destroy(glwin *win);
 
 	glctx *glctx_create(glwin *win, int ver_major, int ver_minor);

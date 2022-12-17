@@ -73,6 +73,15 @@ char_callback(glwin *win, unsigned int code, int repeat_count, int mods)
 		putchar(code);
 }
 
+static void
+device_event_callback(glwin *win, enum mtgl_device_type type, enum mtgl_device_state state, int id)
+{
+	if (state)
+		printf("device %d disconnected\n", id);
+	else
+		printf("device %d connected\n", id);
+}
+
 static const char *
 device_type_string(enum mtgl_device_type type)
 {
@@ -82,7 +91,7 @@ device_type_string(enum mtgl_device_type type)
 	case mtgl_device_type_graphics: return "graphics";
 	case mtgl_device_type_mouse: return "mouse";
 	case mtgl_device_type_keyboard: return "keyboard";
-	case mtgl_device_type_gamepad: return "gamepad";
+	case mtgl_device_type_joystick: return "joystick";
 	case mtgl_device_type_audio_out: return "audio out";
 	case mtgl_device_type_audio_in: return "audio in";
 	case mtgl_device_type_any: return "any";
@@ -105,9 +114,12 @@ main(int argc, char *argv[])
 	int acquired;
 	void *it = 0;
 	mtgldevice device;
+	mtgljoystickinfo jsinfo;
+	enum mtgldevicestate state;
 
 	mtgl_init();
 
+	mtgl_get_joystick_info(glwin_joystick1, &jsinfo);
 
 	while (it = mtgl_enumerate_devices(it, &device, mtgl_device_type_any))
 	{
