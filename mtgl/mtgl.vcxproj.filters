@@ -24,6 +24,9 @@
     <ClCompile Include="src\mtgl.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\mtgl_input_private.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\glwin_private.h">
@@ -34,6 +37,9 @@
     </ClInclude>
     <ClInclude Include="include\mtgl\mtgl_input_defs.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mtgl_input_private.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

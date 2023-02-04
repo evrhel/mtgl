@@ -36,16 +36,8 @@ static LRESULT CALLBACK
 glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	glwin *win;
-	UINT cbSize;
-	RAWINPUT raw[sizeof(RAWINPUT)];
-	RAWMOUSE *rm;
-	RAWKEYBOARD *rk;
-	USHORT vk;
 	struct event event;
-	int button_id, button_num;
 	LPCREATESTRUCTA lpCreateStruct;
-	PDEV_BROADCAST_DEVICEINTERFACE_A pDevInterface;
-	HANDLE hDevice;
 
 	win = (glwin *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 
@@ -58,7 +50,7 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE: {
 		lpCreateStruct = (LPCREATESTRUCTA)lParam;
 		win = lpCreateStruct->lpCreateParams;
-		SetWindowLongPtrA(hwnd, GWLP_USERDATA, win);
+		SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)win);
 		win->x = lpCreateStruct->x;
 		win->y = lpCreateStruct->y;
 		win->width = lpCreateStruct->cx;
@@ -141,17 +133,14 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		push_event(win, &event);
 		return 0;
 	}
-	case WM_INPUT_DEVICE_CHANGE: {
-		handle_input_device_event(win, lParam, wParam == GIDC_ARRIVAL ? mtgl_device_connected : mtgl_device_disconnected);
-		return 0;
-	}
 	case WM_CHAR:
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
 	case WM_SYSCHAR:
-	case WM_INPUT: return mtgl_handle_input_message(win, hwnd, uMsg, wParam, lParam);
+	case WM_INPUT:
+	case WM_INPUT_DEVICE_CHANGE: return glwin_handle_input_message(win, hwnd, uMsg, wParam, lParam);
 		break;
 	}
 
@@ -241,6 +230,7 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 	WNDCLASSA wc;
 	ATOM atom = 0;
 	DWORD dwStyle;
+	int i;
 	
 	hInstance = GetModuleHandleA(NULL);
 
@@ -250,7 +240,7 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 	if (win_class_refs == 0)
 	{
 		ZeroMemory(&wc, sizeof(wc));
-		wc.lpfnWndProc = glwin_win_proc;
+		wc.lpfnWndProc = &glwin_win_proc;
 		wc.hInstance = hInstance;
 		wc.lpszClassName = win_class_name;
 		wc.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
@@ -293,6 +283,9 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 
 	win->user_data = user_data;
 
+	for (i = 0; i < glwin_joystick_last; i++)
+		mtgl_init_joystick(&win->aJoysticks[i]);
+
 	/* register input devices */
 
 	if (flags & glwin_wf_raw_mouse_input)
@@ -316,8 +309,6 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 		if (!RegisterRawInputDevices(&win->rid[1], 1, sizeof(win->rid[1])))
 			goto failure;
 	}
-
-	win->hHeap = GetProcessHeap();
 
 	win_class_refs++;
 	gllock_release(mtgl_get_lock());
@@ -539,9 +530,58 @@ glwin_get_time(glwin *win)
 }
 
 int
+glwin_get_joystick_count(glwin *win)
+{
+	int i;
+	int count = 0;
+
+	for (i = 0; i < glwin_joystick_last; i++)
+		if (win->aJoysticks[i].connected)
+			count++;
+
+	return count;
+}
+
+int
+glwin_get_joystick_info(glwin *win, enum glwin_joystick_id id, glwinjoystickinfo *info)
+{
+	struct joystick *joystick;
+
+	if (id < 0 || id >= glwin_joystick_last) return mtgl_device_bad_id;
+
+	joystick = &win->aJoysticks[id];
+	if (!joystick->connected) return mtgl_device_disconnected;
+
+
+
+	return mtgl_device_connected;
+}
+
+int
+glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, glwinrawjoystickstate *state)
+{
+	struct joystick *joystick;
+
+	if (id < 0 || id >= glwin_joystick_last) return mtgl_device_bad_id;
+
+	joystick = &win->aJoysticks[id];
+	if (!joystick->connected) return mtgl_device_disconnected;
+
+	return mtgl_device_connected;
+}
+
+int
 glwin_get_joystick_state(glwin *win, enum glwin_joystick_id id, glwinjoystickstate *state)
 {
+	int result;
+	glwinrawjoystickstate rawstate;
 
+	result = glwin_get_joystick_raw_state(win, id, &rawstate);
+	if (result != mtgl_device_connected) return result;
+
+
+
+	return mtgl_device_connected;
 }
 
 enum glwin_key_state

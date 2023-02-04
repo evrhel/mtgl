@@ -154,7 +154,9 @@ glctx_create(glwin *win, int ver_major, int ver_minor)
 		WGL_COLOR_BITS_ARB,     24,
 		WGL_DEPTH_BITS_ARB,     24,
 		WGL_STENCIL_BITS_ARB,   8,
-		0
+		WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,
+		WGL_SAMPLES_ARB,		16,
+		0,						0
 	};
 
 	GLint aiContextAttributes[] = {
@@ -187,17 +189,11 @@ glctx_create(glwin *win, int ver_major, int ver_minor)
 	/* set the device context's pixel format */
 	ZeroMemory(&pfd, sizeof(pfd));
 	pfd.nSize = sizeof(pfd);
-	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-	pfd.iPixelType = PFD_TYPE_RGBA;
-	pfd.cColorBits = 24;
 
-	iPixelFormat = ChoosePixelFormat(win->hdc, &pfd);
-	if (!iPixelFormat) goto failure;
-
-	iOk = DescribePixelFormat(win->hdc, iPixelFormat, sizeof(pfd), &pfd);
+	iOk = DescribePixelFormat(win->hdc, iPixelFormatARB, sizeof(pfd), &pfd);
 	if (!iOk) goto failure;
 
-	if (!SetPixelFormat(win->hdc, iPixelFormat, &pfd)) goto failure;
+	if (!SetPixelFormat(win->hdc, iPixelFormatARB, &pfd)) goto failure;
 
 	/* create an OpenGL context */
 	ctx->hglrc = wglCreateContextAttribsARB(win->hdc, 0, aiContextAttributes);

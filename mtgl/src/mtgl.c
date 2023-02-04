@@ -206,14 +206,26 @@ mtgl_enumerate_devices_done(void *it)
 	}
 }
 
-int
+void
+mtgl_set_allocator(mtglallocator *allocator)
+{
+
+}
+
+mtglallocator *
+mtgl_allocator()
+{
+
+}
+
+/*int
 mtgl_get_joystick_count()
 {
 	return joyGetNumDevs();
-}
+}*/
 
-int
-mtgl_get_joystick_info(enum glwin_joystick_id id, mtgljoystickinfo *info)
+/*int
+mtgl_get_joystick_info(enum glwin_joystick_id id, glwinjoystickinfo *info)
 {
 	JOYCAPSA caps;
 	MMRESULT result;
@@ -245,8 +257,8 @@ mtgl_get_joystick_info(enum glwin_joystick_id id, mtgljoystickinfo *info)
 	strcpy_s(info->product, sizeof(info->product), caps.szPname);
 
 	return mtgl_device_connected;
-}
-
+}*/
+/*
 int
 glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, mtglrawjoystickstate *state)
 {
@@ -274,7 +286,7 @@ glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, mtglrawjoyst
 
 	return mtgl_device_connected;
 }
-
+*/
 void
 mtgl_done()
 {

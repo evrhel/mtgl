@@ -114,12 +114,9 @@ main(int argc, char *argv[])
 	int acquired;
 	void *it = 0;
 	mtgldevice device;
-	mtgljoystickinfo jsinfo;
-	enum mtgldevicestate state;
+	glwinjoystickinfo jsinfo;
 
 	mtgl_init();
-
-	mtgl_get_joystick_info(glwin_joystick1, &jsinfo);
 
 	while (it = mtgl_enumerate_devices(it, &device, mtgl_device_type_any))
 	{
@@ -135,6 +132,8 @@ main(int argc, char *argv[])
 	prog_ctx.win = glwin_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
 	prog_ctx.ctx = glctx_create(prog_ctx.win, 3, 3);
 
+	glwin_get_joystick_info(prog_ctx.win, glwin_joystick1, &jsinfo);
+
 	glwin_set_event_callback(prog_ctx.win, glwin_event_resize, window_resized);
 	glwin_set_event_callback(prog_ctx.win, glwin_event_char, char_callback);
 
@@ -147,6 +146,8 @@ main(int argc, char *argv[])
 	/* Print OpenGL info */
 	printf("OpenGL:  %s\n", glGetString(GL_VERSION));
 	printf("GLSL:    %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+	glEnable(GL_MULTISAMPLE);
 
 	glctx_release(prog_ctx.ctx);
 

@@ -23,7 +23,8 @@ extern "C" {
 		mtgl_device_connected = 0,
 		mtgl_device_disconnected,
 		mtgl_device_error,
-		mtgl_device_driver_error
+		mtgl_device_driver_error,
+		mtgl_device_bad_id
 	};
 
 	enum win_event_type
@@ -340,8 +341,8 @@ extern "C" {
 		glwin_joystick_button_count = 32
 	};
 
-	typedef struct mtgljoystickinfo mtgljoystickinfo;
-	struct mtgljoystickinfo
+	typedef struct glwinjoystickinfo glwinjoystickinfo;
+	struct glwinjoystickinfo
 	{
 		int xmin, xmax;
 		int ymin, ymax;
@@ -363,12 +364,12 @@ extern "C" {
 		char product[32];
 	};
 	
-	typedef struct mtglrawjoystickstate mtglrawjoystickstate;
-	struct mtglrawjoystickstate
+	typedef struct glwinrawjoystickstate glwinrawjoystickstate;
+	struct glwinrawjoystickstate
 	{
 		int xpos, ypos, zpos;
 		int rpos, upos, vpos;
-		unsigned int buttons;
+		int buttons[glwin_joystick_button_count];
 	};
 
 	typedef struct glwinjoystickstate glwinjoystickstate;
@@ -376,7 +377,7 @@ extern "C" {
 	{
 		float xpos, ypos, zpos;
 		float rpos, upos, vpos;
-		unsigned int buttons;
+		int buttons[glwin_joystick_button_count];
 	};
 
 #ifdef __cplusplus

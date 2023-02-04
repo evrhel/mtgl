@@ -11,6 +11,7 @@ extern "C" {
 	typedef struct glthread glthread;
 	typedef struct gllock gllock;
 	typedef struct mtgldevice mtgldevice;
+	typedef struct glctxinitargs glctxinitargs;
 
 	typedef int(*glthread_fn)(void *);
 
@@ -33,13 +34,24 @@ extern "C" {
 		char string[128];
 	};
 
+	struct glctxinitargs
+	{
+		int red_bits;
+		int green_bits;
+		int blue_bits;
+		int alpha_bits;
+
+		int depth_bits;
+		int stencil_bits;
+
+		int double_buffer;
+		int sample_count;
+	};
+
 	int mtgl_init();
 	gllock *mtgl_get_lock();
 	void *mtgl_enumerate_devices(void *it, mtgldevice *device, int filter);
 	void mtgl_enumerate_devices_done(void *it);
-	int mtgl_get_joystick_count();
-	int mtgl_get_joystick_info(enum glwin_joystick_id id, mtgljoystickinfo *info);
-	int glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, mtglrawjoystickstate *state);
 	void mtgl_done();
 
 	glwin *glwin_create(const char *title, int width, int height, int flags, int device, void *user_data);
@@ -64,9 +76,13 @@ extern "C" {
 	int glwin_get_mouse_button(glwin *win, int key);
 	int glwin_has_focus(glwin *win);
 	float glwin_get_time(glwin *win);
+	int glwin_get_joystick_count(glwin *win);
+	int glwin_get_joystick_info(glwin *win, enum glwin_joystick_id id, glwinjoystickinfo *info);
+	int glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, glwinrawjoystickstate *state);
 	int glwin_get_joystick_state(glwin *win, enum glwin_joystick_id id, glwinjoystickstate *state);
 	void glwin_destroy(glwin *win);
 
+	void glctx_default_init_args(glctxinitargs *args);
 	glctx *glctx_create(glwin *win, int ver_major, int ver_minor);
 	glctx *glctx_clone(glctx *ctx);
 	void glctx_acquire(glctx *ctx);

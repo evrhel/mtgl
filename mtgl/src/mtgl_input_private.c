@@ -33,17 +33,22 @@ push_button_event(glwin *win, struct event *event, int action, int button)
 static void
 handle_input_device_event(glwin *win, HANDLE hDevice, enum mtgl_device_state state)
 {
-	RID_DEVICE_INFO di;
+	RID_DEVICE_INFO di = { 0 };
 	UINT cbSize;
 	PHIDP_PREPARSED_DATA ppd;
 	char name[128];
 	UINT uiResult;
 	int id = -1;
 	enum mtgl_device_type type = mtgl_device_type_none;
+	NTSTATUS status;
+	HIDP_CAPS caps;
+	PHIDP_BUTTON_CAPS buttoncaps;
+	PHIDP_VALUE_CAPS valuecaps;
 
+	cbSize = sizeof(di);
 	uiResult = GetRawInputDeviceInfoA(
 		hDevice, RIDI_DEVICEINFO,
-		&di, sizeof(di));
+		&di, &cbSize);
 	if (uiResult == -1) return;
 
 
@@ -58,25 +63,34 @@ handle_input_device_event(glwin *win, HANDLE hDevice, enum mtgl_device_state sta
 	case RIM_TYPEHID: {
 		type = mtgl_device_type_joystick;
 
-		uiResult = GetRawInputDeviceInfoA(
-			hDevice, RIDI_PREPARSEDDATA,
-			NULL, &cbSize);
-		if (uiResult == -1) return;
+		ppd = win->ppd;
+		cbSize = win->cbPpdSize;
+		if (cbSize == 0)
+		{
+			uiResult = GetRawInputDeviceInfoA(
+				hDevice, RIDI_PREPARSEDDATA,
+				NULL, &cbSize);
+			if (uiResult == -1) return;
 
-		ppd = HeapReAlloc(win->hHeap, 0, win->ppd, cbSize);
-		if (!ppd) return;
-		win->ppd = ppd;
+			ppd = HeapReAlloc(win->hHeap, 0, win->ppd, cbSize);
+			if (!ppd) return;
+			win->ppd = ppd;
+			win->cbPpdSize = cbSize;
+		}
 
 		uiResult = GetRawInputDeviceInfoA(
 			hDevice, RIDI_PREPARSEDDATA,
 			ppd, &cbSize);
 		if (uiResult == -1) return;
 
+		status = HidP_GetCaps(ppd, &caps);
+		if (status) return;
+
+		
+
 		break;
 	}
 	}
-
-	HeapFree(win->hHeap, 0, ppd);
 
 	if (type == mtgl_device_type_none) return;
 
@@ -100,6 +114,7 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 
 	switch (raw->header.dwType)
 	{
+	/* mouse input */
 	case RIM_TYPEMOUSE: {
 		rm = &raw->data.mouse;
 
@@ -112,6 +127,7 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 		if (rm->usButtonFlags & RI_MOUSE_WHEEL)
 			win->wheel += (*(SHORT *)&rm->usButtonData) / WHEEL_DELTA;
 
+		// see WinUser.h
 		button_id = RI_MOUSE_BUTTON_1_DOWN;
 		for (button_num = 0; button_num < 5; button_num++, button_id <<= 2)
 		{
@@ -121,6 +137,8 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 
 		break;
 	}
+
+	/* keyboard input */
 	case RIM_TYPEKEYBOARD: {
 		rk = &raw->data.keyboard;
 		vk = map_vk(rk->VKey, rk->MakeCode, rk->Flags);
@@ -144,25 +162,100 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 			push_event(win, &event);
 			break;
 		}
+		case WM_SYSKEYDOWN:
+		case WM_SYSKEYUP:
+			break;
 		}
 
 		break;
 	}
+
+	/* joystick input */
 	case RIM_TYPEHID: {
 		break;
 	}
 	}
+
+	return 0;
+}
+
+static int
+handle_raw_input_device_change(glwin *win, WPARAM wParam, HANDLE hDevice)
+{
 	return 0;
 }
 
 int
-mtgl_handle_input_message(glwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+mtgl_query_joystick(HANDLE hDevice, struct joystick *joystick)
+{
+	RID_DEVICE_INFO di;
+	UINT cbSize;
+	PHIDP_PREPARSED_DATA ppd;
+	char name[128];
+	UINT uiResult;
+	int id = -1;
+	enum mtgl_device_type type = mtgl_device_type_none;
+	NTSTATUS status;
+	HIDP_CAPS caps;
+	PHIDP_BUTTON_CAPS buttoncaps;
+	PHIDP_VALUE_CAPS valuecaps;
+	HANDLE hHeap;
+
+	hHeap = GetProcessHeap();
+
+	memset(joystick, 0, sizeof(struct joystick));
+
+	cbSize = 0;
+	uiResult = GetRawInputDeviceInfoA(
+		hDevice, RIDI_PREPARSEDDATA, NULL, &cbSize);
+	if (uiResult == -1)
+	{
+		
+	}
+
+	return 0;
+}
+
+int
+mtgl_init_joystick(struct joystick *joystick)
+{
+	memset(joystick, 0, sizeof(struct joystick));
+	return 0;
+}
+
+int
+mtgl_poll_joystick(HANDLE hDevice, struct joystick *joystick)
+{
+	return 0;
+}
+
+void
+mtgl_release_joystick(struct joystick *joystick)
+{
+	if (joystick->pButtonCaps) free(joystick->pButtonCaps);
+	if (joystick->pValueCaps) free(joystick->pValueCaps);
+
+
+}
+
+int
+glwin_register_input_devices(glwin *win)
+{
+	return 0;
+}
+
+LRESULT
+glwin_handle_input_message(glwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	struct event event;
 
 	switch (uMsg)
 	{
-	case WM_INPUT: return handle_raw_input(win, GET_RAWINPUT_CODE_WPARAM(wParam), lParam);
+	/* raw input */
+	case WM_INPUT: return handle_raw_input(win, GET_RAWINPUT_CODE_WPARAM(wParam), (HRAWINPUT)lParam);
+	case WM_INPUT_DEVICE_CHANGE: return handle_raw_input_device_change(win, wParam, (HANDLE)lParam);
+
+	/*  */
 	case WM_CHAR: {
 		event.type = glwin_event_char;
 		event.data.char_.code = (UINT)wParam;
@@ -171,10 +264,17 @@ mtgl_handle_input_message(glwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 		push_event(win, &event);
 		return 0;
 	}
+
+	/* normal keyboard input */
 	case WM_KEYUP:
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
 	case WM_SYSCHAR:
+		return 0;
+
+	/* normal mouse input */
+	case WM_MOUSEMOVE:
+	case WM_MOUSEWHEEL:
 		return 0;
 	}
 

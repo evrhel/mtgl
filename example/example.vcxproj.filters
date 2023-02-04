@@ -42,6 +42,9 @@
     <ClCompile Include="src\shaders.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl_input_private.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\mtgl\src\glwin_private.h">
@@ -52,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="..\mtgl\src\GL\wglext.h">
       <Filter>ext\mtgl\GL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mtgl\src\mtgl_input_private.h">
+      <Filter>ext\mtgl</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
