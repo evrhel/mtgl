@@ -18,20 +18,19 @@ map_vk(USHORT vk, UINT scan_code, UINT flags)
 }
 
 static int
-push_button_event(glwin *win, struct event *event, int action, int button)
+push_button_event(mtglwin *win, struct event *event, int action, int button)
 {
-	win->aMouseButtonStates[glwin_mouse1] = glwin_pressed;
+	win->aMouseButtonStates[mtgl_mouse1] = mtgl_pressed;
 
-	event->type = glwin_event_mouse_button;
-	event->data.mouse_button.action = glwin_pressed;
-	event->data.mouse_button.button = glwin_mouse1;
+	event->type = mtgl_event_mouse_button;
+	event->data.mouse_button.action = mtgl_pressed;
+	event->data.mouse_button.button = mtgl_mouse1;
 	event->data.mouse_button.mods = win->mods;
 	return push_event(win, event);
 }
 
-
 static void
-handle_input_device_event(glwin *win, HANDLE hDevice, enum mtgl_device_state state)
+handle_input_device_event(mtglwin *win, HANDLE hDevice, enum mtgl_device_state state)
 {
 	RID_DEVICE_INFO di = { 0 };
 	UINT cbSize;
@@ -39,7 +38,7 @@ handle_input_device_event(glwin *win, HANDLE hDevice, enum mtgl_device_state sta
 	char name[128];
 	UINT uiResult;
 	int id = -1;
-	enum mtgl_device_type type = mtgl_device_type_none;
+	int type = mtgl_device_type_none;
 	NTSTATUS status;
 	HIDP_CAPS caps;
 	PHIDP_BUTTON_CAPS buttoncaps;
@@ -86,21 +85,18 @@ handle_input_device_event(glwin *win, HANDLE hDevice, enum mtgl_device_state sta
 		status = HidP_GetCaps(ppd, &caps);
 		if (status) return;
 
-		
-
 		break;
 	}
 	}
 
 	if (type == mtgl_device_type_none) return;
 
-	win->callbacks[glwin_event_device_event].on_device_event(win, type, state, id);
+	win->callbacks[mtgl_event_device_event].on_device_event(win, type, state, id);
 
 }
 
-
 static int
-handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
+handle_raw_input(mtglwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 {
 	RAWINPUT raw[sizeof(RAWINPUT)];
 	PRAWMOUSE rm;
@@ -131,8 +127,8 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 		button_id = RI_MOUSE_BUTTON_1_DOWN;
 		for (button_num = 0; button_num < 5; button_num++, button_id <<= 2)
 		{
-			if (rm->usButtonFlags & (button_id)) push_button_event(win, &event, glwin_pressed, glwin_mouse1 + button_id);
-			if (rm->usButtonFlags & (button_id << 1)) push_button_event(win, &event, glwin_released, glwin_mouse1 + button_id);
+			if (rm->usButtonFlags & (button_id)) push_button_event(win, &event, mtgl_pressed, mtgl_mouse1 + button_id);
+			if (rm->usButtonFlags & (button_id << 1)) push_button_event(win, &event, mtgl_released, mtgl_mouse1 + button_id);
 		}
 
 		break;
@@ -143,7 +139,7 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 		rk = &raw->data.keyboard;
 		vk = map_vk(rk->VKey, rk->MakeCode, rk->Flags);
 
-		event.type = glwin_event_key;
+		event.type = mtgl_event_key;
 		event.data.key.key = vk;
 		event.data.key.mods = win->mods;
 
@@ -152,13 +148,13 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 		case WM_KEYDOWN: {
 			if (!win->aKeyStates[vk])
 			{
-				event.data.key.action = win->aKeyStates[vk] = glwin_pressed;
+				event.data.key.action = win->aKeyStates[vk] = mtgl_pressed;
 				push_event(win, &event);
 			}
 			break;
 		}
 		case WM_KEYUP: {
-			event.data.key.action = win->aKeyStates[vk] = glwin_released;
+			event.data.key.action = win->aKeyStates[vk] = mtgl_released;
 			push_event(win, &event);
 			break;
 		}
@@ -180,7 +176,7 @@ handle_raw_input(glwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 }
 
 static int
-handle_raw_input_device_change(glwin *win, WPARAM wParam, HANDLE hDevice)
+handle_raw_input_device_change(mtglwin *win, WPARAM wParam, HANDLE hDevice)
 {
 	return 0;
 }
@@ -239,13 +235,13 @@ mtgl_release_joystick(struct joystick *joystick)
 }
 
 int
-glwin_register_input_devices(glwin *win)
+glwin_register_input_devices(mtglwin *win)
 {
 	return 0;
 }
 
 LRESULT
-glwin_handle_input_message(glwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+glwin_handle_input_message(mtglwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	struct event event;
 
@@ -255,9 +251,9 @@ glwin_handle_input_message(glwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_INPUT: return handle_raw_input(win, GET_RAWINPUT_CODE_WPARAM(wParam), (HRAWINPUT)lParam);
 	case WM_INPUT_DEVICE_CHANGE: return handle_raw_input_device_change(win, wParam, (HANDLE)lParam);
 
-	/*  */
+	/* keyboard (typing) input */
 	case WM_CHAR: {
-		event.type = glwin_event_char;
+		event.type = mtgl_event_char;
 		event.data.char_.code = (UINT)wParam;
 		event.data.char_.repeat_count = (int)(0x0f & lParam);
 		event.data.char_.mods = 0;

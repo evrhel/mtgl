@@ -15,9 +15,6 @@
     <ClCompile Include="src\glctx.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\glthread.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\gllock.c">
       <Filter>src</Filter>
     </ClCompile>

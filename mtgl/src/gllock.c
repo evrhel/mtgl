@@ -2,17 +2,17 @@
 
 #include <Windows.h>
 
-struct gllock
+struct mtgllock
 {
 	CRITICAL_SECTION cs;
 };
 
-gllock *
-gllock_create()
+mtgllock *
+mtgl_lock_create()
 {
-	gllock *lock;
+	mtgllock *lock;
 
-	lock = malloc(sizeof(gllock));
+	lock = malloc(sizeof(mtgllock));
 	if (!lock) return 0;
 
 	InitializeCriticalSection(&lock->cs);
@@ -21,25 +21,25 @@ gllock_create()
 }
 
 void
-gllock_acquire(gllock *lock)
+mtgl_lock_acquire(mtgllock *lock)
 {
 	EnterCriticalSection(&lock->cs);
 }
 
 int
-gllock_try_acquire(gllock *lock)
+mtgl_lock_try_acquire(mtgllock *lock)
 {
 	return TryEnterCriticalSection(&lock->cs);
 }
 
 void
-gllock_release(gllock *lock)
+mtgl_lock_release(mtgllock *lock)
 {
 	LeaveCriticalSection(&lock->cs);
 }
 
 void
-gllock_destroy(gllock *lock)
+mtgl_lock_destroy(mtgllock *lock)
 {
 	if (lock)
 	{

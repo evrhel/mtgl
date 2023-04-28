@@ -7,19 +7,19 @@ static const char win_class_name[] = "glwin";
 static int win_class_refs = 0;
 
 static int
-warn(glwin *win, const char *msg)
+warn(mtglwin *win, const char *msg)
 {
 	return 1;
 }
 
 static int
-error(glwin *win, const char *msg)
+error(mtglwin *win, const char *msg)
 {
 	return 2;
 }
 
 int
-push_event(glwin *win, struct event *evt)
+push_event(mtglwin *win, struct event *evt)
 {
 	if (win->event_last == GLWIN_EVENT_QUEUE_SIZE)
 		return warn(win, "event queue full");
@@ -33,13 +33,13 @@ push_event(glwin *win, struct event *evt)
 
 /* Windows event handler */
 static LRESULT CALLBACK
-glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+mtgl_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	glwin *win;
+	mtglwin *win;
 	struct event event;
 	LPCREATESTRUCTA lpCreateStruct;
 
-	win = (glwin *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	win = (mtglwin *)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 
 	switch (uMsg)
 	{
@@ -61,8 +61,8 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_QUIT: {
 		win->should_close = 1;
 
-		event.type = glwin_event_window_event;
-		event.data.window_event.event = glwin_window_closing;
+		event.type = mtgl_event_window_event;
+		event.data.window_event.event = mtgl_window_closing;
 		event.data.window_event.param1 = 0;
 		event.data.window_event.param2 = 0;
 		push_event(win, &event);
@@ -70,8 +70,8 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_MOVE: {
 		
-		event.type = glwin_event_window_event;
-		event.data.window_event.event = glwin_window_move;
+		event.type = mtgl_event_window_event;
+		event.data.window_event.event = mtgl_window_move;
 		event.data.window_event.param1 = LOWORD(lParam);
 		event.data.window_event.param2 = HIWORD(lParam);
 		push_event(win, &event);
@@ -82,21 +82,21 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		win->was_resized = 1;
 
 		// resize event
-		event.type = glwin_event_resize;
+		event.type = mtgl_event_resize;
 		push_event(win, &event);
 
 		// window event
-		event.type = glwin_event_window_event;
+		event.type = mtgl_event_window_event;
 		switch (wParam)
 		{
 		case SIZE_MAXIMIZED:
-			event.data.window_event.event = glwin_window_maximize;
+			event.data.window_event.event = mtgl_window_maximize;
 			break;
 		case SIZE_MINIMIZED:
-			event.data.window_event.event = glwin_window_minimize;
+			event.data.window_event.event = mtgl_window_minimize;
 			break;
 		case SIZE_RESTORED:
-			event.data.window_event.event = glwin_window_restore;
+			event.data.window_event.event = mtgl_window_restore;
 			break;
 		case SIZE_MAXSHOW:
 		case SIZE_MAXHIDE:
@@ -116,8 +116,8 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SETFOCUS: {
 		win->focused = 1;
 
-		event.type = glwin_event_window_event;
-		event.data.window_event.event = glwin_window_changefocus;
+		event.type = mtgl_event_window_event;
+		event.data.window_event.event = mtgl_window_changefocus;
 		event.data.window_event.param1 = 1;
 		event.data.window_event.param2 = 0;
 		push_event(win, &event);
@@ -126,8 +126,8 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KILLFOCUS: {
 		win->focused = 0;
 
-		event.type = glwin_event_window_event;
-		event.data.window_event.event = glwin_window_changefocus;
+		event.type = mtgl_event_window_event;
+		event.data.window_event.event = mtgl_window_changefocus;
 		event.data.window_event.param1 = 0;
 		event.data.window_event.param2 = 0;
 		push_event(win, &event);
@@ -148,12 +148,13 @@ glwin_win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 static void
-dispatch_events(glwin *win)
+dispatch_events(mtglwin *win)
 {
 	struct event *event;
 	union event_data *data;
 	union callback callback;
 
+	/* iterate through event queue and run callbacks */
 	for (event = win->events; event < win->events + win->event_last; event++)
 	{
 		callback = win->callbacks[event->type];
@@ -163,10 +164,10 @@ dispatch_events(glwin *win)
 		data = &event->data;
 		switch (event->type)
 		{
-		case glwin_event_resize:
+		case mtgl_event_resize:
 			callback.on_resize(win, win->width, win->height);
 			break;
-		case glwin_event_mouse_move: {
+		case mtgl_event_mouse_move: {
 			callback.on_mouse_move(
 				win,
 				data->mouse_move.old_mx, data->mouse_move.old_my,
@@ -174,7 +175,7 @@ dispatch_events(glwin *win)
 			);
 			break;
 		}
-		case glwin_event_key: {
+		case mtgl_event_key: {
 			callback.on_key(
 				win,
 				data->key.key,
@@ -183,7 +184,7 @@ dispatch_events(glwin *win)
 			);
 			break;
 		}
-		case glwin_event_char: {
+		case mtgl_event_char: {
 			callback.on_char(
 				win, 
 				data->char_.code,
@@ -192,7 +193,7 @@ dispatch_events(glwin *win)
 			);
 			break;
 		}
-		case glwin_event_mouse_button: {
+		case mtgl_event_mouse_button: {
 			callback.on_mouse_button(
 				win,
 				data->mouse_button.button,
@@ -201,7 +202,7 @@ dispatch_events(glwin *win)
 			);
 			break;
 		}
-		case glwin_event_window_event: {
+		case mtgl_event_window_event: {
 			callback.on_window_event(
 				win,
 				data->window_event.event,
@@ -210,10 +211,10 @@ dispatch_events(glwin *win)
 			);
 			break;
 		}
-		case glwin_event_user1:
-		case glwin_event_user2:
-		case glwin_event_user3:
-		case glwin_event_user4:
+		case mtgl_event_user1:
+		case mtgl_event_user2:
+		case mtgl_event_user3:
+		case mtgl_event_user4:
 			callback.on_user_event(win, data->user_event.data);
 			break;
 		}
@@ -222,25 +223,25 @@ dispatch_events(glwin *win)
 	win->event_last = 0;
 }
 
-glwin *
-glwin_create(const char *title, int width, int height, int flags, int device, void *user_data)
+mtglwin *
+mtgl_win_create(const char *title, int width, int height, int flags, int device, void *user_data)
 {
 	HINSTANCE hInstance;
-	glwin *win = 0;
+	mtglwin *win = 0;
 	WNDCLASSA wc;
 	ATOM atom = 0;
 	DWORD dwStyle;
 	int i;
 	
-	hInstance = GetModuleHandleA(NULL);
+	hInstance = GetModuleHandleA(NULL); // current executable
 
-	gllock_acquire(mtgl_get_lock());
+	mtgl_lock_acquire(mtgl_get_lock());
 
 	/* register window class if necessary */
 	if (win_class_refs == 0)
 	{
 		ZeroMemory(&wc, sizeof(wc));
-		wc.lpfnWndProc = &glwin_win_proc;
+		wc.lpfnWndProc = &mtgl_win_proc;
 		wc.hInstance = hInstance;
 		wc.lpszClassName = win_class_name;
 		wc.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
@@ -250,10 +251,10 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 		if (!atom) 0;
 	}
 
-	win = calloc(1, sizeof(glwin));
+	win = calloc(1, sizeof(mtglwin));
 	if (!win) goto failure;
 
-	win->lock = gllock_create();
+	win->lock = mtgl_lock_create();
 	if (!win->lock) goto failure;
 
 	win->flags = flags;
@@ -261,16 +262,16 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 	/* create the window */
 	dwStyle = WS_OVERLAPPEDWINDOW;
 	win->hwnd = CreateWindowExA(
-		0,
-		win_class_name,
-		title,
-		dwStyle,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		width, height,
-		NULL,
-		NULL,
-		hInstance,
-		win
+		0,								// no extra style
+		win_class_name,					// mtgl window class
+		title,							// user title
+		dwStyle,						// window style
+		CW_USEDEFAULT, CW_USEDEFAULT,	// default position
+		width, height,					// user width and height
+		NULL,							// no parent
+		NULL,							// no menu
+		hInstance,						// current application module
+		win								// the mtgl window
 	);
 	if (!win->hwnd) goto failure;
 
@@ -278,17 +279,19 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 	win->hdc = GetDC(win->hwnd);
 	if (!win->hdc) goto failure;
 
+	/* setup timer */
 	if (!QueryPerformanceFrequency(&win->freq)) goto failure;
 	QueryPerformanceCounter(&win->start);
 
 	win->user_data = user_data;
 
-	for (i = 0; i < glwin_joystick_last; i++)
+	/* initialize joysticks */
+	for (i = 0; i < mtgl_joystick_last; i++)
 		mtgl_init_joystick(&win->aJoysticks[i]);
 
 	/* register input devices */
 
-	if (flags & glwin_wf_raw_mouse_input)
+	if (flags & mtgl_wf_raw_mouse_input)
 	{
 		win->rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
 		win->rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
@@ -299,7 +302,7 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 			goto failure;
 	}
 
-	if (flags & glwin_wf_raw_keyboard_input)
+	if (flags & mtgl_wf_raw_keyboard_input)
 	{
 		win->rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
 		win->rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
@@ -311,7 +314,7 @@ glwin_create(const char *title, int width, int height, int flags, int device, vo
 	}
 
 	win_class_refs++;
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_release(mtgl_get_lock());
 	return win;
 
 failure:
@@ -320,89 +323,88 @@ failure:
 	{
 		if (win->hdc) ReleaseDC(win->hwnd, win->hdc);
 		if (win->hwnd) DestroyWindow(win->hwnd);
-		if (win->lock) gllock_destroy(win->lock);
+		if (win->lock) mtgl_lock_destroy(win->lock);
 
 		free(win);
 	}
 
 	if (atom) UnregisterClassA(win_class_name, hInstance);
 
-
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_release(mtgl_get_lock());
 	return 0;
 }
 
 void
-glwin_set_title(glwin *win, const char *title)
+mtgl_set_title(mtglwin *win, const char *title)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	SetWindowTextA(win->hwnd, title);
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void *
-glwin_get_user_data(glwin *win)
+mtgl_get_user_data(mtglwin *win)
 {
 	return win->user_data;
 }
 
 void
-glwin_show_window(glwin *win, int shown)
+mtgl_show_window(mtglwin *win, int shown)
 {
 	RECT rc;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	ShowWindow(win->hwnd, shown ? SW_SHOW : SW_HIDE);
 
 	GetWindowRect(win->hwnd, &rc);
 	win->x = rc.left;
 	win->y = rc.top;
 
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 int
-glwin_should_close(glwin *win)
+mtgl_should_close(mtglwin *win)
 {
 	int should_close;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	should_close = win->should_close;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 
 	return should_close;
 }
 
 void
-glwin_set_should_close(glwin *win, int should_close)
+mtgl_set_should_close(mtglwin *win, int should_close)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	win->should_close = should_close;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_queue_event(glwin *win, enum win_event_type type, void *data)
+mtgl_queue_event(mtglwin *win, int type, void *data)
 {
 	struct event evt;
 
 	evt.type = type;
 	evt.data.user_event.data = data;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	push_event(win, &evt);
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_poll_events(glwin *win)
+mtgl_poll_events(mtglwin *win)
 {
 	BOOL bResult;
 	MSG msg;
 
 	RECT rc;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 
 	win->was_resized = 0;
 
@@ -428,101 +430,101 @@ glwin_poll_events(glwin *win)
 	/* call user callbacks */
 	dispatch_events(win);
 
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_swap_buffers(glwin *win)
+mtgl_swap_buffers(mtglwin *win)
 {
 	SwapBuffers(win->hdc);
 }
 
 void
-glwin_set_event_callback(glwin *win, enum win_callback_type type, void *cb)
+mtgl_set_event_callback(mtglwin *win, int type, void *cb)
 {
-	if (type < 0 || type >= glwin_event_last) return;
+	if (type < 0 || type >= mtgl_event_last) return;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	win->callbacks[type].ptr = cb;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 int
-glwin_was_resized(glwin *win)
+mtgl_was_resized(mtglwin *win)
 {
 	int was_resized;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	was_resized = win->was_resized;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 
 	return win->was_resized;
 }
 
 void
-glwin_get_size(glwin *win, int *const width, int *const height)
+mtgl_get_size(mtglwin *win, int *const width, int *const height)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	*width = win->width;
 	*height = win->height;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_get_full_size(glwin *win, int *width, int *height)
+mtgl_get_full_size(mtglwin *win, int *width, int *height)
 {
 	RECT rc;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	GetWindowRect(win->hwnd, &rc);
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 
 	*width = rc.right - rc.left;
 	*height = rc.bottom - rc.top;
 }
 
 void
-glwin_set_size(glwin *win, int width, int height)
+mtgl_set_size(mtglwin *win, int width, int height)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	SetWindowPos(win->hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOOWNERZORDER);
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_set_full_size(glwin *win, int width, int height)
+mtgl_set_full_size(mtglwin *win, int width, int height)
 {
-	glwin_set_size(win, width, height);
+	mtgl_set_size(win, width, height);
 }
 
 void
-glwin_get_pos(glwin *win, int *x, int *y)
+mtgl_get_pos(mtglwin *win, int *x, int *y)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	*x = win->x;
 	*y = win->y;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_set_pos(glwin *win, int x, int y)
+mtgl_set_pos(mtglwin *win, int x, int y)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	SetWindowPos(win->hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOOWNERZORDER);
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 void
-glwin_get_mouse_pos(glwin *win, int *x, int *y)
+mtgl_get_mouse_pos(mtglwin *win, int *x, int *y)
 {
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	*x = win->mx;
 	*y = win->my;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 }
 
 float
-glwin_get_time(glwin *win)
+mtgl_get_time(mtglwin *win)
 {
 	LARGE_INTEGER li;
 	QueryPerformanceCounter(&li);
@@ -530,12 +532,12 @@ glwin_get_time(glwin *win)
 }
 
 int
-glwin_get_joystick_count(glwin *win)
+mtgl_get_joystick_count(mtglwin *win)
 {
 	int i;
 	int count = 0;
 
-	for (i = 0; i < glwin_joystick_last; i++)
+	for (i = 0; i < mtgl_joystick_last; i++)
 		if (win->aJoysticks[i].connected)
 			count++;
 
@@ -543,11 +545,11 @@ glwin_get_joystick_count(glwin *win)
 }
 
 int
-glwin_get_joystick_info(glwin *win, enum glwin_joystick_id id, glwinjoystickinfo *info)
+mtgl_get_joystick_info(mtglwin *win, int id, int *info)
 {
 	struct joystick *joystick;
 
-	if (id < 0 || id >= glwin_joystick_last) return mtgl_device_bad_id;
+	if (id < 0 || id >= mtgl_joystick_last) return mtgl_device_bad_id;
 
 	joystick = &win->aJoysticks[id];
 	if (!joystick->connected) return mtgl_device_disconnected;
@@ -558,11 +560,11 @@ glwin_get_joystick_info(glwin *win, enum glwin_joystick_id id, glwinjoystickinfo
 }
 
 int
-glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, glwinrawjoystickstate *state)
+mtgl_get_joystick_raw_state(mtglwin *win, int id, int *state)
 {
 	struct joystick *joystick;
 
-	if (id < 0 || id >= glwin_joystick_last) return mtgl_device_bad_id;
+	if (id < 0 || id >= mtgl_joystick_last) return mtgl_device_bad_id;
 
 	joystick = &win->aJoysticks[id];
 	if (!joystick->connected) return mtgl_device_disconnected;
@@ -571,77 +573,75 @@ glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, glwinrawjoys
 }
 
 int
-glwin_get_joystick_state(glwin *win, enum glwin_joystick_id id, glwinjoystickstate *state)
+mtgl_get_joystick_state(mtglwin *win, int id, int *state)
 {
 	int result;
-	glwinrawjoystickstate rawstate;
+	int rawstate;
 
-	result = glwin_get_joystick_raw_state(win, id, &rawstate);
+	result = mtgl_get_joystick_raw_state(win, id, &rawstate);
 	if (result != mtgl_device_connected) return result;
 
-
-
 	return mtgl_device_connected;
 }
 
-enum glwin_key_state
-glwin_get_key(glwin *win, int key)
+int
+mtgl_get_key(mtglwin *win, int key)
 {
 	enum glwin_key_state state;
 	if (key < 0 || key >= (sizeof(win->aKeyStates) / sizeof(win->aKeyStates[0])))
 		return -1;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	state = win->aKeyStates[key];
-	gllock_release(win->lock);
-
-	return state;
-}
-
-enum glwin_key_state
-glwin_get_mouse_button(glwin *win, int key)
-{
-	enum glwin_key_state state;
-	if (key < 0 || key >= (sizeof(win->aKeyStates) / sizeof(win->aKeyStates[0])))
-		return -1;
-
-	gllock_acquire(win->lock);
-	state = win->aMouseButtonStates[key];
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 
 	return state;
 }
 
 int
-glwin_has_focus(glwin *win)
+mtgl_get_mouse_button(mtglwin *win, int key)
+{
+	int state;
+	if (key < 0 || key >= (sizeof(win->aKeyStates) / sizeof(win->aKeyStates[0])))
+		return -1;
+
+	mtgl_lock_acquire(win->lock);
+	state = win->aMouseButtonStates[key];
+	mtgl_lock_release(win->lock);
+
+	return state;
+}
+
+int
+mtgl_has_focus(mtglwin *win)
 {
 	int result;
 
-	gllock_acquire(win->lock);
+	mtgl_lock_acquire(win->lock);
 	result = win->focused;
-	gllock_release(win->lock);
+	mtgl_lock_release(win->lock);
 
 	return result;
 }
 
 void
-glwin_destroy(glwin *win)
+mtgl_win_destroy(mtglwin *win)
 {
 	if (!win) return;
 
-	gllock_acquire(mtgl_get_lock());
+	mtgl_lock_acquire(mtgl_get_lock());
 
 	if (win->ppd) HeapFree(win->hHeap, 0, win->ppd);
 
 	ReleaseDC(win->hwnd, win->hdc);
 	DestroyWindow(win->hwnd);
 	
-	gllock_destroy(win->lock);
+	mtgl_lock_destroy(win->lock);
 
 	free(win);
 
 	win_class_refs--;
 	if (win_class_refs == 0) UnregisterClassA(win_class_name, GetModuleHandleA(NULL));
 
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_release(mtgl_get_lock());
 }

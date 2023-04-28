@@ -23,5 +23,5 @@ int mtgl_init_joystick(struct joystick *joystick);
 int mtgl_poll_joystick(HANDLE hDevice, struct joystick *joystick);
 void mtgl_release_joystick(struct joystick *joystick);
 
-int glwin_register_input_devices(glwin *win);
-LRESULT glwin_handle_input_message(glwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+int glwin_register_input_devices(mtglwin *win);
+LRESULT glwin_handle_input_message(mtglwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -6,19 +6,37 @@
 #include "GL/glcorearb.h"
 #include "GL/wglext.h"
 
+#define DRAW_TO_WINDOW_VAL 1
+#define SUPPORT_OPENGL_VAL 3
+#define DOUBLE_BUFFER_VAL 5
+#define PIXEL_TYPE_VAL 7
+#define RED_BITS_VAL 9
+#define GREEN_BITS_VAL 11
+#define BLUE_BITS_VAL 13
+#define ALPHA_BITS_VAL 15
+#define DEPTH_BITS_VAL 17
+#define STENCIL_BITS_VAL 19
+#define SAMPLE_BUFFERS_VAL 21
+#define SAMPLES_VAL 23
+
+#define VER_MAJOR_VAL 1
+#define VER_MINOR_VAL 3
+#define PROFILE_VAL 5
+
 enum ctxtype
 {
 	ctxtype_root,
 	ctxtype_child
 };
 
-struct glctx
+struct mtglctx
 {
-	enum ctxtype type;
-	glwin *win;
+	int type;
+	mtglwin *win;
 	HGLRC hglrc;
-	gllock *lock;
+	mtgllock *lock;
 	int ver_major, ver_minor;
+	int profile;
 	int nesting;
 };
 
@@ -28,9 +46,36 @@ static PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = 0;
 static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = 0;
 static PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT = 0;
 
+static inline int
+get_color_format(int colorformat)
+{
+	switch (colorformat)
+	{
+	case mtgl_color_format_any:
+	case mtgl_color_format_rgba:
+		return WGL_TYPE_RGBA_ARB;
+	default:
+		return 0;
+	}
+}
+
+static inline int
+get_profile(int profile)
+{
+	switch (profile)
+	{
+	case mtgl_profile_core:
+		return WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+	case mtgl_profile_compatability:
+		return WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+	default:
+		return 0;
+	}
+}
+
 /* initialize necessary functions to create an OpenGL context */
 static int
-glctx_init_funcs(HINSTANCE hInstance)
+mtgl_ctx_init_funcs(HINSTANCE hInstance)
 {
 	const char class_name[] = "dummyclass";
 	WNDCLASSA wc;
@@ -98,9 +143,9 @@ glctx_init_funcs(HINSTANCE hInstance)
 	if (!hGLModule) goto failure;
 
 	/* load library functions */
-	wglChoosePixelFormatARB = glctx_get_proc("wglChoosePixelFormatARB");
-	wglCreateContextAttribsARB = glctx_get_proc("wglCreateContextAttribsARB");
-	wglSwapIntervalEXT = glctx_get_proc("wglSwapIntervalEXT");
+	wglChoosePixelFormatARB = mtgl_ctx_get_proc("wglChoosePixelFormatARB");
+	wglCreateContextAttribsARB = mtgl_ctx_get_proc("wglCreateContextAttribsARB");
+	wglSwapIntervalEXT = mtgl_ctx_get_proc("wglSwapIntervalEXT");
 
 	if (!wglChoosePixelFormatARB) goto failure;
 	if (!wglCreateContextAttribsARB) goto failure;
@@ -134,53 +179,95 @@ failure:
 	return 0;
 }
 
-glctx *
-glctx_create(glwin *win, int ver_major, int ver_minor)
+void
+mtgl_ctx_default_init_args(mtglctxinitargs *args)
+{
+	args->profile = mtgl_profile_core;
+
+	args->color_format = mtgl_color_format_rgba;
+	args->red_bits = 8;
+	args->green_bits = 8;
+	args->blue_bits = 8;
+	args->alpha_bits = 8;
+
+	args->depth_bits = 24;
+	args->stencil_bits = 8;
+
+	args->double_buffer = GL_TRUE;
+	args->allow_sampling = GL_FALSE;
+	args->sample_count = 1;
+}
+
+mtglctx *
+mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, const mtglctxinitargs *args)
 {
 	HINSTANCE hInstance;
-	glctx *ctx = 0;
+	mtglctx *ctx = 0;
 	PIXELFORMATDESCRIPTOR pfd;
 	int iPixelFormat;
 	int iOk;
 	int iPixelFormatARB;
 	UINT uiPixelFormatsFound;
 
-	const float afAttributes[] = { 0, 0 };
-	const int aiPixelAttributes[] = {
-		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-		WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
-		WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-		WGL_COLOR_BITS_ARB,     24,
-		WGL_DEPTH_BITS_ARB,     24,
-		WGL_STENCIL_BITS_ARB,   8,
-		WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,
-		WGL_SAMPLES_ARB,		16,
-		0,						0
+	float afAttributes[] = { 0, 0 };
+	int aiPixelAttributes[] = {
+		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,			// 0
+		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,			// 2
+		WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,			// 4
+		WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,	// 6
+		WGL_RED_BITS_ARB,		8,					// 8
+		WGL_GREEN_BITS_ARB,		8,					// 10
+		WGL_BLUE_BITS_ARB,		8,					// 12
+		WGL_ALPHA_BITS_ARB,		8,					// 14
+		WGL_DEPTH_BITS_ARB,     24,					// 16
+		WGL_STENCIL_BITS_ARB,   8,					// 18
+		WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,			// 20
+		WGL_SAMPLES_ARB,		16,					// 22
+		0
 	};
 
 	GLint aiContextAttributes[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, ver_major,
-		WGL_CONTEXT_MINOR_VERSION_ARB, ver_minor,
-		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+		WGL_CONTEXT_MAJOR_VERSION_ARB, -1,
+		WGL_CONTEXT_MINOR_VERSION_ARB, -1,
+		WGL_CONTEXT_PROFILE_MASK_ARB, -1,
 		0
 	};
 
 	/* main context already exists */
 	if (win->main) return 0;
 
+	/* use default args if not supplied */
+	if (!args) mtgl_ctx_default_init_args(args);
+
+	/* setup context attributes */
+	aiContextAttributes[VER_MAJOR_VAL] = ver_major;
+	aiContextAttributes[VER_MINOR_VAL] = ver_minor;
+	aiContextAttributes[PROFILE_VAL] = get_profile(args->profile);
+
+	/* setup pixel attributes */
+	aiPixelAttributes[DOUBLE_BUFFER_VAL] = args->double_buffer;
+	aiPixelAttributes[PIXEL_TYPE_VAL] = get_color_format(args->color_format);
+	aiPixelAttributes[RED_BITS_VAL] = args->red_bits;
+	aiPixelAttributes[GREEN_BITS_VAL] = args->green_bits;
+	aiPixelAttributes[BLUE_BITS_VAL] = args->blue_bits;
+	aiPixelAttributes[ALPHA_BITS_VAL] = args->alpha_bits;
+	aiPixelAttributes[DEPTH_BITS_VAL] = args->depth_bits;
+	aiPixelAttributes[STENCIL_BITS_VAL] = args->stencil_bits;
+	aiPixelAttributes[SAMPLE_BUFFERS_VAL] = args->allow_sampling;
+	aiPixelAttributes[SAMPLES_VAL] = args->sample_count;
+
 	hInstance = GetModuleHandleA(NULL);
 
 	/* get necessary wgl funcs to create an instance */
 	if (gl_refs == 0 && !glctx_init_funcs(hInstance)) return 0;
 
-	ctx = calloc(1, sizeof(glctx));
+	ctx = calloc(1, sizeof(mtglctx));
 	if (!ctx) return 0;
 
-	gllock_acquire(mtgl_get_lock());
+	mtgl_lock_acquire(mtgl_get_lock());
 
 	/* create a lock to synchronize on the context */
-	ctx->lock = gllock_create();
+	ctx->lock = mtgl_lock_create();
 	if (!ctx->lock) goto failure;
 
 	if (!wglChoosePixelFormatARB(win->hdc, aiPixelAttributes, NULL, 1, &iPixelFormatARB, &uiPixelFormatsFound)) goto failure;
@@ -203,10 +290,11 @@ glctx_create(glwin *win, int ver_major, int ver_minor)
 	ctx->win = win;
 	ctx->ver_major = ver_major;
 	ctx->ver_minor = ver_minor;
+	ctx->profile = aiContextAttributes[PROFILE_VAL];
 
 	gl_refs++;
 
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_release(mtgl_get_lock());
 	return ctx;
 
 failure:
@@ -214,7 +302,7 @@ failure:
 	if (ctx)
 	{
 		if (ctx->hglrc) wglDeleteContext(ctx->hglrc);
-		if (ctx->lock) gllock_destroy(ctx->lock);
+		if (ctx->lock) mtgl_lock_destroy(ctx->lock);
 		free(ctx);
 	}
 
@@ -228,31 +316,32 @@ failure:
 		wglSwapIntervalEXT = 0;
 	}
 
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_release(mtgl_get_lock());
 	return 0;
 }
 
-glctx *
-glctx_clone(glctx *ctx)
+mtglctx *
+mtgl_ctx_clone(mtglctx *ctx)
 {
-	glctx *cloned;
+	mtglctx *cloned;
 	GLint aiContextAttributes[] = {
 		WGL_CONTEXT_MAJOR_VERSION_ARB, -1,
 		WGL_CONTEXT_MINOR_VERSION_ARB, -1,
-		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+		WGL_CONTEXT_PROFILE_MASK_ARB, -1,
 		0
 	};
 
-	gllock_acquire(mtgl_get_lock());
-	gllock_acquire(ctx->lock);
+	mtgl_lock_acquire(mtgl_get_lock());
+	mtgl_lock_acquire(ctx->lock);
 
-	aiContextAttributes[1] = ctx->ver_major;
-	aiContextAttributes[3] = ctx->ver_minor;
+	aiContextAttributes[VER_MAJOR_VAL] = ctx->ver_major;
+	aiContextAttributes[VER_MINOR_VAL] = ctx->ver_minor;
+	aiContextAttributes[PROFILE_VAL] = ctx->profile;
 
-	cloned = calloc(1, sizeof(glctx));
+	cloned = calloc(1, sizeof(mtglctx));
 	if (!cloned) goto failure;
 
-	cloned->lock = gllock_create();
+	cloned->lock = mtgl_lock_create();
 	if (!cloned->lock) goto failure;
 
 	cloned->type = ctxtype_child;
@@ -269,36 +358,36 @@ glctx_clone(glctx *ctx)
 
 	gl_refs++;
 
-	gllock_release(ctx->lock);
+	mtgl_lock_release(ctx->lock);
 
 	return cloned;
 failure:
 	if (cloned)
 	{
 		if (cloned->hglrc) wglDeleteContext(cloned->hglrc);
-		if (cloned->lock) gllock_destroy(cloned->lock);
+		if (cloned->lock) mtgl_lock_destroy(cloned->lock);
 
 		free(cloned);
 	}
 
-	gllock_release(ctx->lock);
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_release(ctx->lock);
+	mtgl_lock_release(mtgl_get_lock());
 	return 0;
 }
 
 void
-glctx_acquire(glctx *ctx)
+mtgl_ctx_acquire(mtglctx *ctx)
 {
-	gllock_acquire(ctx->lock);
+	mtgl_lock_acquire(ctx->lock);
 	ctx->nesting++;
 	if (ctx->nesting == 1)
 		wglMakeCurrent(ctx->win->hdc, ctx->hglrc);
 }
 
 int
-glctx_try_acquire(glctx *ctx)
+mtgl_ctx_try_acquire(mtglctx *ctx)
 {
-	if (!gllock_try_acquire(ctx->lock)) return 0;
+	if (!mtgl_lock_try_acquire(ctx->lock)) return 0;
 
 	ctx->nesting++;
 	if (ctx->nesting == 1)
@@ -308,31 +397,31 @@ glctx_try_acquire(glctx *ctx)
 }
 
 void
-glctx_release(glctx *ctx)
+mtgl_ctx_release(mtglctx *ctx)
 {
 	ctx->nesting--;
 	if (ctx->nesting == 0)
 		wglMakeCurrent(NULL, NULL);
-	gllock_release(ctx->lock);
+	mtgl_lock_release(ctx->lock);
 }
 
 void
-glctx_set_swap_interval(glctx *ctx, int interval)
+mtgl_ctx_set_swap_interval(mtglctx *ctx, int interval)
 {
-	glctx_acquire(ctx);
+	mtgl_ctx_acquire(ctx);
 	wglSwapIntervalEXT(interval);
-	glctx_release(ctx);
+	mtgl_ctx_release(ctx);
 }
 
 void
-glctx_destroy(glctx *ctx)
+mtgl_ctx_destroy(mtglctx *ctx)
 {
-	gllock_acquire(mtgl_get_lock());
-	gllock_acquire(ctx->lock);
+	mtgl_lock_acquire(mtgl_get_lock());
+	mtgl_lock_acquire(ctx->lock);
 
 	wglDeleteContext(ctx->hglrc);
 
-	gllock_release(ctx->lock);
+	mtgl_lock_release(ctx->lock);
 
 	gl_refs--;
 	if (gl_refs == 0)
@@ -341,14 +430,14 @@ glctx_destroy(glctx *ctx)
 		hGLModule = 0;
 	}
 
-	gllock_destroy(ctx->lock);
-	gllock_release(mtgl_get_lock());
+	mtgl_lock_destroy(ctx->lock);
+	mtgl_lock_release(mtgl_get_lock());
 
 	free(ctx);
 }
 
 void *
-glctx_get_proc(const char *name)
+mtgl_ctx_get_proc(const char *name)
 {
 	void *proc;
 	proc = wglGetProcAddress(name);

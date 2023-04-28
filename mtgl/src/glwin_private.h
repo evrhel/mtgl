@@ -13,6 +13,7 @@ extern "C" {
 
 #define GLWIN_EVENT_QUEUE_SIZE 32
 
+	/* data for specific event */
 	union event_data
 	{
 		struct
@@ -28,7 +29,7 @@ extern "C" {
 		struct
 		{
 			int key;
-			enum glwin_key_state action;
+			int action;
 			int mods;
 		} key;
 
@@ -42,21 +43,21 @@ extern "C" {
 		struct
 		{
 			int button;
-			enum glwin_key_state action;
+			int action;
 			int mods;
 		} mouse_button;
 
 		struct
 		{
-			enum glwin_window_event event;
+			int event;
 			int param1;
 			int param2;
 		} window_event;
 
 		struct
 		{
-			enum mtgl_device_type type;
-			enum mtgl_device_state state;
+			int type;
+			int state;
 			int id;
 		} device_event;
 
@@ -66,33 +67,34 @@ extern "C" {
 		} user_event;
 	};
 
-
+	/* window event */
 	struct event
 	{
-		enum glwin_event_type type;
-		glwin *win;
-		union event_data data;
+		int type;				// event type - describes data
+		mtglwin *win;			// the window
+		union event_data data;	// event data
 	};
 
+	/* window callback */
 	union callback
 	{
 		void *ptr;
-		glwin_resize_cb_fn on_resize;
-		glwin_mouse_move_cb_fn on_mouse_move;
-		glwin_key_cb_fn on_key;
-		glwin_char_cb_fn on_char;
-		glwin_mouse_button_cb_fn on_mouse_button;
-		glwin_window_event_cb_fn on_window_event;
-		glwin_device_event_cb_fn on_device_event;
-		glwin_user_event_cb_fn on_user_event;
+		mtgl_resize_cb_fn on_resize;
+		mtgl_mouse_move_cb_fn on_mouse_move;
+		mtgl_key_cb_fn on_key;
+		mtgl_char_cb_fn on_char;
+		mtgl_mouse_button_cb_fn on_mouse_button;
+		mtgl_window_event_cb_fn on_window_event;
+		mtgl_device_event_cb_fn on_device_event;
+		mtgl_user_event_cb_fn on_user_event;
 	};
 
-	struct glwin
+	struct mtglwin
 	{
 		HWND hwnd;			// window handle
 		HDC hdc;			// device context
-		glctx *main;		// main OpenGL context
-		gllock *lock;		// lock for this window
+		mtglctx *main;		// main OpenGL context
+		mtgllock *lock;		// lock for this window
 		HANDLE hHeap;		// heap for this window
 		int flags;			// flags passed to the creation function
 		int should_close;	// whether the window should close
@@ -104,10 +106,10 @@ extern "C" {
 		int focused;		// whether the window is focused
 		int mods;			// mofifier keys held on an input event
 
-		enum glwin_key_state aMouseButtonStates[8];	// state of each mouse button
-		enum glwin_key_state aKeyStates[0x100];		// state of each key
-		DWORD dwKeyMods;
-		struct joystick aJoysticks[glwin_joystick_last];
+		int aMouseButtonStates[8];	// state of each mouse button
+		int aKeyStates[0x100];		// state of each key
+		DWORD dwKeyMods;			// modifier keys held down
+		struct joystick aJoysticks[mtgl_joystick_last];	// joystick
 
 		SHORT wheel;	// state of mouse wheel
 
@@ -115,7 +117,7 @@ extern "C" {
 		PHIDP_PREPARSED_DATA ppd;
 		UINT cbPpdSize;
 
-		union callback callbacks[glwin_event_last];	// user event callbacks
+		union callback callbacks[mtgl_event_last];	// user event callbacks
 
 		struct event events[GLWIN_EVENT_QUEUE_SIZE];	// event queue
 		int event_last;									// end of event queue
@@ -126,7 +128,8 @@ extern "C" {
 		LARGE_INTEGER freq;		// frequency of the timer
 	};
 	
-	int push_event(glwin *, struct event *);
+	/* push window event */
+	int push_event(mtglwin *, struct event *);
 
 #ifdef __cplusplus
 }

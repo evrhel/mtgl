@@ -153,7 +153,6 @@
   <ItemGroup>
     <ClCompile Include="src\glctx.c" />
     <ClCompile Include="src\gllock.c" />
-    <ClCompile Include="src\glthread.c" />
     <ClCompile Include="src\glwin.c" />
     <ClCompile Include="src\mtgl.c" />
     <ClCompile Include="src\mtgl_input_private.c" />

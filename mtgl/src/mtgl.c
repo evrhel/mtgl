@@ -4,7 +4,7 @@
 
 struct device_iterator
 {
-	enum mtgl_device_type current_device;
+	int current_device;
 	int filter;
 	int first;
 
@@ -20,7 +20,7 @@ struct device_iterator
 	};
 };
 
-static gllock *lock;
+static mtgllock *lock = 0;
 
 #define rnd(dt, filter) { *(filter) &= ~(dt); return (dt); }
 static inline enum mtgl_device_type
@@ -38,12 +38,12 @@ next_device(int *filter)
 int
 mtgl_init()
 {
-	lock = gllock_create();
+	lock = mtgl_lock_create();
 	if (!lock) return 0;
 	return 1;
 }
 
-gllock *
+mtgllock *
 mtgl_get_lock()
 {
 	return lock;
@@ -205,19 +205,6 @@ mtgl_enumerate_devices_done(void *it)
 		free(it);
 	}
 }
-
-void
-mtgl_set_allocator(mtglallocator *allocator)
-{
-
-}
-
-mtglallocator *
-mtgl_allocator()
-{
-
-}
-
 /*int
 mtgl_get_joystick_count()
 {
