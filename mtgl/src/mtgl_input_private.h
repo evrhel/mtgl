@@ -1,10 +1,13 @@
 #pragma once
 
 #include <mtgl/mtgl.h>
+
+#if _WIN32
 #include <Windows.h>
 #include <Dbt.h>
 #include <hidusage.h>
 #include <hidpi.h>
+#endif
 
 struct joystick
 {

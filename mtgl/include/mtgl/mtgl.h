@@ -95,7 +95,7 @@ extern "C" {
 	int mtgl_has_focus(mtglwin *win);
 	float mtgl_get_time(mtglwin *win);
 	int mtgl_get_joystick_count(mtglwin *win);
-	int mtgl_get_joystick_info(mtglwin *win, int id, int *info);
+	int mtgl_get_joystick_info(mtglwin *win, int id, mtgljoystickinfo *info);
 	int mtgl_get_joystick_raw_state(mtglwin *win, int, int *state);
 	int mtgl_get_joystick_state(mtglwin *win, int id, int *state);
 	void mtgl_win_destroy(mtglwin *win);

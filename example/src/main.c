@@ -1,6 +1,12 @@
 #include <mtgl/mtgl.h>
 
+#if _WIN32
 #include <Windows.h>
+#elif __posix__ || __linx__ || __APPLE__
+#include <unistd.h>
+#include <pthread.h>
+#endif
+
 #include <glad/glad.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,8 +14,8 @@
 
 struct ctx
 {
-	glwin *win;
-	glctx *ctx;
+	mtglwin *win;
+	mtglctx *ctx;
 
 	struct
 	{
@@ -23,22 +29,30 @@ struct ctx
 		GLuint tri_vbo;
 	} objects;
 
-	glthread *worker;
+#if _WIN32
+	HANDLE hWorker;
+#elif __posix__ || __linux__ || __APPLE__
+	pthread_t worker;
+#endif
 };
 
 extern GLuint compile_shader(const char *name, GLenum type);
 extern GLuint link_shaders(GLuint vert, GLuint frag);
 
+#if _WIN32
 static int loader_worker(struct ctx *prog_ctx);
+#elif __posix__ || __linux__ || __APPLE__
+static void *loader_worker(void *ptr);
+#endif
 
 static void
-window_resized(glwin *win, int width, int height)
+window_resized(mtglwin *win, int width, int height)
 {
-	struct ctx *ctx = glwin_get_user_data(win);
+	struct ctx *ctx = mtgl_get_user_data(win);
 
-	glctx_acquire(ctx->ctx);
+	mtgl_ctx_acquire(ctx->ctx);
 	glViewport(0, 0, width, height);
-	glctx_release(ctx->ctx);
+	mtgl_ctx_release(ctx->ctx);
 }
 
 static int
@@ -67,14 +81,14 @@ destroy_shaders(struct ctx *prog_ctx)
 }
 
 static void
-char_callback(glwin *win, unsigned int code, int repeat_count, int mods)
+char_callback(mtglwin *win, unsigned int code, int repeat_count, int mods)
 {
 	for (; repeat_count > 0; repeat_count--)
 		putchar(code);
 }
 
 static void
-device_event_callback(glwin *win, enum mtgl_device_type type, enum mtgl_device_state state, int id)
+device_event_callback(mtglwin *win, enum mtgl_device_type type, enum mtgl_device_state state, int id)
 {
 	if (state)
 		printf("device %d disconnected\n", id);
@@ -114,11 +128,11 @@ main(int argc, char *argv[])
 	int acquired;
 	void *it = 0;
 	mtgldevice device;
-	glwinjoystickinfo jsinfo;
+	mtgljoystickinfo jsinfo;
 
 	mtgl_init();
 
-	while (it = mtgl_enumerate_devices(it, &device, mtgl_device_type_any))
+	while ((it = mtgl_enumerate_devices(it, &device, mtgl_device_type_any)))
 	{
 		printf("%s device:\n", device_type_string(device.type));
 		printf("  id = %d\n", device.id);
@@ -129,19 +143,19 @@ main(int argc, char *argv[])
 	mtgl_enumerate_devices_done(it);
 
 	/* create a window and OpenGL context */
-	prog_ctx.win = glwin_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
-	prog_ctx.ctx = glctx_create(prog_ctx.win, 3, 3);
+	prog_ctx.win = mtgl_win_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
+	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, 0);
 
-	glwin_get_joystick_info(prog_ctx.win, glwin_joystick1, &jsinfo);
+	mtgl_get_joystick_info(prog_ctx.win, mtgl_joystick1, &jsinfo);
 
-	glwin_set_event_callback(prog_ctx.win, glwin_event_resize, window_resized);
-	glwin_set_event_callback(prog_ctx.win, glwin_event_char, char_callback);
+	mtgl_set_event_callback(prog_ctx.win, mtgl_event_resize, window_resized);
+	mtgl_set_event_callback(prog_ctx.win, mtgl_event_char, char_callback);
 
-	glctx_set_swap_interval(prog_ctx.ctx, 1); // enable vsync
+	mtgl_ctx_set_swap_interval(prog_ctx.ctx, 1); // enable vsync
 
-	glctx_acquire(prog_ctx.ctx);
+	mtgl_ctx_acquire(prog_ctx.ctx);
 
-	gladLoadGLLoader(glctx_get_proc); // load OpenGL functions
+	gladLoadGLLoader(mtgl_ctx_get_proc); // load OpenGL functions
 
 	/* Print OpenGL info */
 	printf("OpenGL:  %s\n", glGetString(GL_VERSION));
@@ -149,30 +163,34 @@ main(int argc, char *argv[])
 
 	glEnable(GL_MULTISAMPLE);
 
-	glctx_release(prog_ctx.ctx);
+	mtgl_ctx_release(prog_ctx.ctx);
 
 	/* create a worker thread to load OpenGL resources */
+#if _WIN32
 	prog_ctx.worker = glthread_create(prog_ctx.ctx, loader_worker, &prog_ctx);
+#elif __posix__ || __linux__ || __APPLE__
+	pthread_create(&prog_ctx.worker, 0, loader_worker, &prog_ctx);
+#endif
 
-	glwin_show_window(prog_ctx.win, 1); // show the window
+	mtgl_show_window(prog_ctx.win, 1); // show the window
 
-	start = glwin_get_time(prog_ctx.win);
+	start = mtgl_get_time(prog_ctx.win);
 
 	/* loop until the window should close */
-	while (!glwin_should_close(prog_ctx.win))
+	while (!mtgl_should_close(prog_ctx.win))
 	{
-		glwin_get_size(prog_ctx.win, &width, &height);
-
-		r = sinf(glwin_get_time(prog_ctx.win)) * 0.5f + 0.5f;
-		g = sinf(glwin_get_time(prog_ctx.win) + one_third_2pi) * 0.5f + 0.5f;
-		b = sinf(glwin_get_time(prog_ctx.win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
+		mtgl_get_size(prog_ctx.win, &width, &height);
+	
+		r = sinf(mtgl_get_time(prog_ctx.win)) * 0.5f + 0.5f;
+		g = sinf(mtgl_get_time(prog_ctx.win) + one_third_2pi) * 0.5f + 0.5f;
+		b = sinf(mtgl_get_time(prog_ctx.win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
 
 		if (skipped_frames < max_frame_skips)
-			acquired = glctx_try_acquire(prog_ctx.ctx);
+			acquired = mtgl_ctx_try_acquire(prog_ctx.ctx);
 		else
 		{
 			skipped_frames = 0;
-			glctx_acquire(prog_ctx.ctx);
+			mtgl_ctx_acquire(prog_ctx.ctx);
 			acquired = 1;
 		}
 
@@ -192,11 +210,11 @@ main(int argc, char *argv[])
 				glDrawArrays(GL_TRIANGLES, 0, 3);
 			}
 
-			glctx_release(prog_ctx.ctx);
+			mtgl_ctx_release(prog_ctx.ctx);
 			acquired = 0;
 
 			/* swap front and back buffers */
-			glwin_swap_buffers(prog_ctx.win);
+			mtgl_swap_buffers(prog_ctx.win);
 		}
 		else
 		{
@@ -205,32 +223,35 @@ main(int argc, char *argv[])
 		}
 
 		/* poll window events */
-		glwin_poll_events(prog_ctx.win);
+		mtgl_poll_events(prog_ctx.win);
 
 		/* close the window if escape key is pressed */
-		if (glwin_get_key(prog_ctx.win, glwin_escape))
-			glwin_set_should_close(prog_ctx.win, 1);
+		if (mtgl_get_key(prog_ctx.win, mtgl_escape))
+			mtgl_set_should_close(prog_ctx.win, 1);
 
 		num_frames++;
 	}
 
-	end = glwin_get_time(prog_ctx.win);
+	end = mtgl_get_time(prog_ctx.win);
 
-	glthread_detach(prog_ctx.worker);
+#if _WIN32
+#elif __posix__ || __linux__ || __APPLE__
+	pthread_detach(prog_ctx.worker);
+#endif
 	prog_ctx.worker = 0;
 
 	/* cleanup OpenGL resources */
-	glctx_acquire(prog_ctx.ctx);
+	mtgl_ctx_acquire(prog_ctx.ctx);
 
 	glDeleteBuffers(1, &prog_ctx.objects.tri_vbo);
 	glDeleteVertexArrays(1, &prog_ctx.objects.tri_vao);
 
 	destroy_shaders(&prog_ctx);
-	glctx_release(prog_ctx.ctx);
+	mtgl_ctx_release(prog_ctx.ctx);
 
 	/* destroy the OpenGL context and window */
-	glctx_destroy(prog_ctx.ctx);
-	glwin_destroy(prog_ctx.win);
+	mtgl_ctx_destroy(prog_ctx.ctx);
+	mtgl_win_destroy(prog_ctx.win);
 
 	mtgl_done();
 
@@ -241,11 +262,17 @@ main(int argc, char *argv[])
 	return 0;
 }
 
+#if _WIN32
 static int
 loader_worker(struct ctx *prog_ctx)
+#elif __posix__ || __linux__ || __APPLE__
+static void *
+loader_worker(void *ptr)
+#endif
 {
-	glwin *win = prog_ctx->win;
-	glctx *ctx = prog_ctx->ctx;
+	struct ctx *prog_ctx = ptr;
+	mtglwin *win = prog_ctx->win;
+	mtglctx *ctx = prog_ctx->ctx;
 
 	/* triangle vertex data */
 	GLfloat vbo_data[] = {
@@ -255,21 +282,25 @@ loader_worker(struct ctx *prog_ctx)
 		1.0f, -1.0f,	0.0f, 0.0f, 1.0f
 	};
 
-	glctx_acquire(ctx);
+	mtgl_ctx_acquire(ctx);
 
 	printf("Loading shaders\n");
 	load_shaders(prog_ctx);
 	prog_ctx->programs.screen_color_unif = glGetUniformLocation(prog_ctx->programs.screen, "uColor");
 	printf("Done loading\n");
 
-	glctx_release(ctx);
+	mtgl_ctx_release(ctx);
 
 	// some long cpu work (maybe something to do with the triangle created below, but not on GPU)
 	printf("Doing some 'intensive' cpu work\n");
+#if _WIN32
 	Sleep(3000);
+#elif __posix__ || __linux__ || __APPLE__
+	sleep(3);
+#endif
 	printf("Work done\n");
 
-	glctx_acquire(ctx);
+	mtgl_ctx_acquire(ctx);
 
 	printf("Loading triangle on another thread!\n");
 
@@ -293,7 +324,7 @@ loader_worker(struct ctx *prog_ctx)
 
 	printf("Triangle done loading!\n");
 
-	glctx_release(ctx);
+	mtgl_ctx_release(ctx);
 
 	return 0;
 }

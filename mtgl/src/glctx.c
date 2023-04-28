@@ -2,7 +2,12 @@
 
 #pragma comment(lib, "opengl32.lib")
 
+#if _WIN32
 #include <gl/GL.h>
+#elif __APPLE__
+#include <OpenGL/gl.h>
+#endif
+
 #include "GL/glcorearb.h"
 #include "GL/wglext.h"
 

@@ -11,7 +11,11 @@ read_file(const char *filename, long *const size)
 	char *buf;
 	size_t read;
 
+#if _WIN32
 	fopen_s(&file, filename, "r");
+#else
+	file = fopen(filename, "r");
+#endif
 	if (!file) return 0;
 
 	fseek(file, 0, SEEK_END);
@@ -25,7 +29,11 @@ read_file(const char *filename, long *const size)
 		return 0;
 	}
 
+#if _WIN32
 	read = fread_s(buf, *size, 1, *size, file);
+#else
+	read = fread(buf, 1, *size, file);
+#endif
 
 	fclose(file);
 
@@ -51,7 +59,7 @@ compile_shader(const char *name, GLenum type)
 		return 0;
 	}
 
-	glShaderSource(result, 1, &buf, NULL);
+	glShaderSource(result, 1, (const GLchar *const *)&buf, NULL);
 	glCompileShader(result);
 
 	glGetShaderiv(result, GL_COMPILE_STATUS, &success);

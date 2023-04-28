@@ -1,7 +1,10 @@
 #pragma once
 
+#if _WIN32
 #include <Windows.h>
 #include <hidsdi.h>
+#elif __posix__ || __linux__ || __APPLE__
+#endif
 
 #include <mtgl/mtgl.h>
 
@@ -89,13 +92,27 @@ extern "C" {
 		mtgl_user_event_cb_fn on_user_event;
 	};
 
+#if _WIN32
+	struct win32_window
+	{
+		HWND hwnd;
+		HDC hdc;
+		HANDLE hHeap;
+
+		RAWINPUTDEVICE rid[2];		// raw input devices
+		PHIDP_PREPARSED_DATA ppd;
+		UINT cbPpdSize;
+
+		LARGE_INTEGER start;	// time at which the window was created
+		LARGE_INTEGER freq;		// frequency of the timer
+	};
+#endif
+
 	struct mtglwin
 	{
-		HWND hwnd;			// window handle
-		HDC hdc;			// device context
+		void *native;		// native window data
 		mtglctx *main;		// main OpenGL context
 		mtgllock *lock;		// lock for this window
-		HANDLE hHeap;		// heap for this window
 		int flags;			// flags passed to the creation function
 		int should_close;	// whether the window should close
 		int was_resized;	// whether the window was resized
@@ -108,14 +125,10 @@ extern "C" {
 
 		int aMouseButtonStates[8];	// state of each mouse button
 		int aKeyStates[0x100];		// state of each key
-		DWORD dwKeyMods;			// modifier keys held down
+		int keyMods;				// modifier keys held down
 		struct joystick aJoysticks[mtgl_joystick_last];	// joystick
 
-		SHORT wheel;	// state of mouse wheel
-
-		RAWINPUTDEVICE rid[2];		// raw input devices
-		PHIDP_PREPARSED_DATA ppd;
-		UINT cbPpdSize;
+		short wheel;	// state of mouse wheel
 
 		union callback callbacks[mtgl_event_last];	// user event callbacks
 
@@ -123,9 +136,6 @@ extern "C" {
 		int event_last;									// end of event queue
 
 		void *user_data;	// user data passed to creation function
-
-		LARGE_INTEGER start;	// time at which the window was created
-		LARGE_INTEGER freq;		// frequency of the timer
 	};
 	
 	/* push window event */
