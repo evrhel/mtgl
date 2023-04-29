@@ -129,6 +129,7 @@ main(int argc, char *argv[])
 	void *it = 0;
 	mtgldevice device;
 	mtgljoystickinfo jsinfo;
+	mtglctxinitargs args;
 
 	mtgl_init();
 
@@ -142,9 +143,14 @@ main(int argc, char *argv[])
 	}
 	mtgl_enumerate_devices_done(it);
 
+	/* 8x MSAA on the default framebuffer */
+	mtgl_ctx_get_default_init_args(&args);
+	args.allow_sampling = 1;
+	args.sample_count = 8;
+
 	/* create a window and OpenGL context */
 	prog_ctx.win = mtgl_win_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
-	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, 0);
+	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, &args);
 
 	mtgl_get_joystick_info(prog_ctx.win, mtgl_joystick1, &jsinfo);
 
@@ -167,7 +173,7 @@ main(int argc, char *argv[])
 
 	/* create a worker thread to load OpenGL resources */
 #if _WIN32
-	prog_ctx.worker = glthread_create(prog_ctx.ctx, loader_worker, &prog_ctx);
+	prog_ctx.hWorker = CreateThread(0, 0, loader_worker, &prog_ctx, 0, 0);
 #elif __posix__ || __linux__ || __APPLE__
 	pthread_create(&prog_ctx.worker, 0, loader_worker, &prog_ctx);
 #endif
@@ -235,10 +241,11 @@ main(int argc, char *argv[])
 	end = mtgl_get_time(prog_ctx.win);
 
 #if _WIN32
+	CloseHandle(prog_ctx.hWorker);
 #elif __posix__ || __linux__ || __APPLE__
 	pthread_detach(prog_ctx.worker);
 #endif
-	prog_ctx.worker = 0;
+	prog_ctx.hWorker = 0;
 
 	/* cleanup OpenGL resources */
 	mtgl_ctx_acquire(prog_ctx.ctx);
@@ -265,12 +272,13 @@ main(int argc, char *argv[])
 #if _WIN32
 static int
 loader_worker(struct ctx *prog_ctx)
+{
 #elif __posix__ || __linux__ || __APPLE__
 static void *
 loader_worker(void *ptr)
-#endif
 {
 	struct ctx *prog_ctx = ptr;
+#endif	
 	mtglwin *win = prog_ctx->win;
 	mtglctx *ctx = prog_ctx->ctx;
 

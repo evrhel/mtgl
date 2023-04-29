@@ -21,42 +21,54 @@
     <ClCompile Include="src\main.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\mtgl\src\glctx.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\mtgl\src\gllock.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\mtgl\src\glthread.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\mtgl\src\glwin.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\mtgl\src\mtgl.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
     <ClCompile Include="dependencies\src\glad\glad.c">
       <Filter>ext\glad</Filter>
     </ClCompile>
     <ClCompile Include="src\shaders.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\mtgl\src\glctx.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\gllock.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl_ctx_win32.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
     <ClCompile Include="..\mtgl\src\mtgl_input_private.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl_win_win32.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl_win.c">
       <Filter>ext\mtgl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\mtgl\src\glwin_private.h">
-      <Filter>ext\mtgl</Filter>
-    </ClInclude>
     <ClInclude Include="..\mtgl\src\GL\glcorearb.h">
       <Filter>ext\mtgl\GL</Filter>
     </ClInclude>
     <ClInclude Include="..\mtgl\src\GL\wglext.h">
       <Filter>ext\mtgl\GL</Filter>
     </ClInclude>
+    <ClInclude Include="..\mtgl\src\mtgl_ctx_win32.h">
+      <Filter>ext\mtgl</Filter>
+    </ClInclude>
     <ClInclude Include="..\mtgl\src\mtgl_input_private.h">
+      <Filter>ext\mtgl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mtgl\src\mtgl_win.h">
+      <Filter>ext\mtgl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mtgl\src\mtgl_win_win32.h">
+      <Filter>ext\mtgl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\mtgl\src\mtglctx.h">
       <Filter>ext\mtgl</Filter>
     </ClInclude>
   </ItemGroup>

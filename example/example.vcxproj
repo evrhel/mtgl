@@ -149,19 +149,23 @@
   <ItemGroup>
     <ClCompile Include="..\mtgl\src\glctx.c" />
     <ClCompile Include="..\mtgl\src\gllock.c" />
-    <ClCompile Include="..\mtgl\src\glthread.c" />
-    <ClCompile Include="..\mtgl\src\glwin.c" />
     <ClCompile Include="..\mtgl\src\mtgl.c" />
+    <ClCompile Include="..\mtgl\src\mtgl_ctx_win32.c" />
     <ClCompile Include="..\mtgl\src\mtgl_input_private.c" />
+    <ClCompile Include="..\mtgl\src\mtgl_win.c" />
+    <ClCompile Include="..\mtgl\src\mtgl_win_win32.c" />
     <ClCompile Include="dependencies\src\glad\glad.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\shaders.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\mtgl\src\glwin_private.h" />
     <ClInclude Include="..\mtgl\src\GL\glcorearb.h" />
     <ClInclude Include="..\mtgl\src\GL\wglext.h" />
+    <ClInclude Include="..\mtgl\src\mtglctx.h" />
+    <ClInclude Include="..\mtgl\src\mtgl_ctx_win32.h" />
     <ClInclude Include="..\mtgl\src\mtgl_input_private.h" />
+    <ClInclude Include="..\mtgl\src\mtgl_win.h" />
+    <ClInclude Include="..\mtgl\src\mtgl_win_win32.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

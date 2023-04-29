@@ -100,8 +100,8 @@ extern "C" {
 	int mtgl_get_joystick_state(mtglwin *win, int id, int *state);
 	void mtgl_win_destroy(mtglwin *win);
 
-	void mtgl_ctx_default_init_args(mtglctxinitargs *args);
-	mtglctx *mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, const mtglctxinitargs *args);
+	void mtgl_ctx_get_default_init_args(mtglctxinitargs *args);
+	mtglctx *mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *argsp);
 	mtglctx *mtgl_ctx_clone(mtglctx *ctx);
 	void mtgl_ctx_acquire(mtglctx *ctx);
 	int mtgl_ctx_try_acquire(mtglctx *ctx);

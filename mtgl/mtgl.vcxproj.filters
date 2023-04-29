@@ -9,9 +9,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\glwin.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\glctx.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -21,7 +18,13 @@
     <ClCompile Include="src\mtgl.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\mtgl_input_private.c">
+    <ClCompile Include="src\mtgl_win_win32.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mtgl_ctx_win32.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mtgl_win.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,7 +38,16 @@
     <ClInclude Include="include\mtgl\mtgl_input_defs.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="src\mtgl_input_private.h">
+    <ClInclude Include="src\mtgl_win_win32.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mtglctx.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mtgl_ctx_win32.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mtgl_win.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

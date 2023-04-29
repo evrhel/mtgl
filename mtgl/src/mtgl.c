@@ -277,6 +277,6 @@ glwin_get_joystick_raw_state(glwin *win, enum glwin_joystick_id id, mtglrawjoyst
 void
 mtgl_done()
 {
-	if (lock) gllock_destroy(lock);
+	if (lock) mtgl_lock_destroy(lock);
 	lock = 0;
 }

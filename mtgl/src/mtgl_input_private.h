@@ -9,7 +9,7 @@
 #include <hidpi.h>
 #endif
 
-struct joystick
+/*struct joystick
 {
 	HIDP_CAPS caps;
 	PHIDP_BUTTON_CAPS pButtonCaps;
@@ -27,4 +27,4 @@ int mtgl_poll_joystick(HANDLE hDevice, struct joystick *joystick);
 void mtgl_release_joystick(struct joystick *joystick);
 
 int glwin_register_input_devices(mtglwin *win);
-LRESULT glwin_handle_input_message(mtglwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LRESULT glwin_handle_input_message(mtglwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);*/

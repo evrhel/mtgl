@@ -153,15 +153,19 @@
   <ItemGroup>
     <ClCompile Include="src\glctx.c" />
     <ClCompile Include="src\gllock.c" />
-    <ClCompile Include="src\glwin.c" />
     <ClCompile Include="src\mtgl.c" />
-    <ClCompile Include="src\mtgl_input_private.c" />
+    <ClCompile Include="src\mtgl_ctx_win32.c" />
+    <ClCompile Include="src\mtgl_win.c" />
+    <ClCompile Include="src\mtgl_win_win32.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\mtgl\mtgl.h" />
     <ClInclude Include="include\mtgl\mtgl_input_defs.h" />
     <ClInclude Include="src\glwin_private.h" />
-    <ClInclude Include="src\mtgl_input_private.h" />
+    <ClInclude Include="src\mtglctx.h" />
+    <ClInclude Include="src\mtgl_ctx_win32.h" />
+    <ClInclude Include="src\mtgl_win.h" />
+    <ClInclude Include="src\mtgl_win_win32.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

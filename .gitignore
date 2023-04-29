@@ -17,3 +17,4 @@ mtgl/x64
 *.pdb
 *.tlog
 *.lastbuildstate
+*.o

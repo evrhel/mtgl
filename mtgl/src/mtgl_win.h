@@ -1,20 +1,21 @@
 #pragma once
 
-#if _WIN32
-#include <Windows.h>
-#include <hidsdi.h>
-#elif __posix__ || __linux__ || __APPLE__
-#endif
-
 #include <mtgl/mtgl.h>
 
 #include "mtgl_input_private.h"
+
+#define JOY_NATIVE_SIZE 96
+#define JOY_COUNT mtgl_joystick_last
+
+#define EVT_CB_COUNT mtgl_event_last
+
+#define EVENT_QUEUE_SIZE 32
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define GLWIN_EVENT_QUEUE_SIZE 32
+	typedef unsigned char state_t;
 
 	/* data for specific event */
 	union event_data
@@ -92,25 +93,18 @@ extern "C" {
 		mtgl_user_event_cb_fn on_user_event;
 	};
 
-#if _WIN32
-	struct win32_window
+	struct joystick
 	{
-		HWND hwnd;
-		HDC hdc;
-		HANDLE hHeap;
+		int connected;		// whether the joystick is connected
 
-		RAWINPUTDEVICE rid[2];		// raw input devices
-		PHIDP_PREPARSED_DATA ppd;
-		UINT cbPpdSize;
+		char name[64];		// name of joystick
+		char vendor[64];	// vendor of joystick
 
-		LARGE_INTEGER start;	// time at which the window was created
-		LARGE_INTEGER freq;		// frequency of the timer
+		char native[JOY_NATIVE_SIZE];	// native joystick handle
 	};
-#endif
 
 	struct mtglwin
 	{
-		void *native;		// native window data
 		mtglctx *main;		// main OpenGL context
 		mtgllock *lock;		// lock for this window
 		int flags;			// flags passed to the creation function
@@ -123,23 +117,26 @@ extern "C" {
 		int focused;		// whether the window is focused
 		int mods;			// mofifier keys held on an input event
 
-		int aMouseButtonStates[8];	// state of each mouse button
-		int aKeyStates[0x100];		// state of each key
+		int mb_states[8];			// state of each mouse button
+		int key_states[0x100];		// state of each key
 		int keyMods;				// modifier keys held down
-		struct joystick aJoysticks[mtgl_joystick_last];	// joystick
+		struct joystick *joysticks;	// joysticks
 
-		short wheel;	// state of mouse wheel
+		short wheel;				// state of mouse wheel
 
-		union callback callbacks[mtgl_event_last];	// user event callbacks
+		union callback *callbacks;	// user event callbacks length = mtgl_event_last
 
-		struct event events[GLWIN_EVENT_QUEUE_SIZE];	// event queue
-		int event_last;									// end of event queue
+		struct event *events;		// event queue
+		int event_last;				// end of event queue
 
-		void *user_data;	// user data passed to creation function
+		void *user_data;			// user data passed to creation function
 	};
-	
-	/* push window event */
-	int push_event(mtglwin *, struct event *);
+
+	/* event management */
+
+	int mtgl_push_event(mtglwin *, struct event *);
+	int mtgl_push_button_event(mtglwin *win, struct event *event, int action, int button);
+	void mtgl_dispatch_events(mtglwin *);
 
 #ifdef __cplusplus
 }
