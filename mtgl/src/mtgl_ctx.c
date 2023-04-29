@@ -1,4 +1,4 @@
-#include "mtglctx.h"
+#include "mtgl_ctx.h"
 
 #if _WIN32
 #include "mtgl_ctx_win32.h"
@@ -30,7 +30,7 @@ mtglctx *
 mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *argsp)
 {
 #if _WIN32
-	return mtgl_ctx_create_win32(win, ver_major, ver_minor, argsp);
+	return (mtglctx *)mtgl_ctx_create_win32((struct mtglwin_win32 *)win, ver_major, ver_minor, argsp);
 #endif
 }
 
@@ -38,7 +38,7 @@ mtglctx *
 mtgl_ctx_clone(mtglctx *ctx)
 {
 #if _WIN32
-	return mtgl_ctx_clone_win32(ctx);
+	return (mtglctx *)mtgl_ctx_clone_win32((struct mtglctx_win32 *)ctx);
 #endif
 }
 
@@ -46,7 +46,7 @@ void
 mtgl_ctx_acquire(mtglctx *ctx)
 {
 #if _WIN32
-	mtgl_ctx_acquire_win32(ctx);
+	mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
 #endif
 }
 
@@ -54,7 +54,7 @@ int
 mtgl_ctx_try_acquire(mtglctx *ctx)
 {
 #if _WIN32
-	mtgl_ctx_try_acquire_win32(ctx);
+	mtgl_ctx_try_acquire_win32((struct mtglctx_win32 *)ctx);
 #endif
 }
 
@@ -62,7 +62,7 @@ void
 mtgl_ctx_release(mtglctx *ctx)
 {
 #if _WIN32
-	mtgl_ctx_release_win32(ctx);
+	mtgl_ctx_release_win32((struct mtglctx_win32 *)ctx);
 #endif
 }
 
@@ -70,7 +70,7 @@ void
 mtgl_ctx_set_swap_interval(mtglctx *ctx, int interval)
 {
 #if _WIN32
-	mtgl_ctx_set_swap_interval_win32(ctx, interval);
+	mtgl_ctx_set_swap_interval_win32((struct mtglctx_win32 *)ctx, interval);
 #endif
 }
 
@@ -78,7 +78,7 @@ void
 mtgl_ctx_destroy(mtglctx *ctx)
 {
 #if _WIN32
-	mtgl_ctx_destroy_win32(ctx);
+	mtgl_ctx_destroy_win32((struct mtglctx_win32 *)ctx);
 #endif
 }
 

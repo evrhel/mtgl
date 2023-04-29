@@ -27,25 +27,22 @@
     <ClCompile Include="src\shaders.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\mtgl\src\glctx.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\mtgl\src\gllock.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
     <ClCompile Include="..\mtgl\src\mtgl.c">
       <Filter>ext\mtgl</Filter>
     </ClCompile>
     <ClCompile Include="..\mtgl\src\mtgl_ctx_win32.c">
       <Filter>ext\mtgl</Filter>
     </ClCompile>
-    <ClCompile Include="..\mtgl\src\mtgl_input_private.c">
-      <Filter>ext\mtgl</Filter>
-    </ClCompile>
     <ClCompile Include="..\mtgl\src\mtgl_win_win32.c">
       <Filter>ext\mtgl</Filter>
     </ClCompile>
     <ClCompile Include="..\mtgl\src\mtgl_win.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl_ctx.c">
+      <Filter>ext\mtgl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\mtgl\src\mtgl_lock.c">
       <Filter>ext\mtgl</Filter>
     </ClCompile>
   </ItemGroup>
@@ -59,16 +56,13 @@
     <ClInclude Include="..\mtgl\src\mtgl_ctx_win32.h">
       <Filter>ext\mtgl</Filter>
     </ClInclude>
-    <ClInclude Include="..\mtgl\src\mtgl_input_private.h">
-      <Filter>ext\mtgl</Filter>
-    </ClInclude>
     <ClInclude Include="..\mtgl\src\mtgl_win.h">
       <Filter>ext\mtgl</Filter>
     </ClInclude>
     <ClInclude Include="..\mtgl\src\mtgl_win_win32.h">
       <Filter>ext\mtgl</Filter>
     </ClInclude>
-    <ClInclude Include="..\mtgl\src\mtglctx.h">
+    <ClInclude Include="..\mtgl\src\mtgl_ctx.h">
       <Filter>ext\mtgl</Filter>
     </ClInclude>
   </ItemGroup>

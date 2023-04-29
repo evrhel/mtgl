@@ -4,7 +4,7 @@
 
 #include <Windows.h>
 
-#include "mtglctx.h"
+#include "mtgl_ctx.h"
 
 #ifdef __cplusplus
 extern "C"

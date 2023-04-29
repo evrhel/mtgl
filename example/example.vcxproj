@@ -147,11 +147,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\mtgl\src\glctx.c" />
-    <ClCompile Include="..\mtgl\src\gllock.c" />
     <ClCompile Include="..\mtgl\src\mtgl.c" />
+    <ClCompile Include="..\mtgl\src\mtgl_ctx.c" />
     <ClCompile Include="..\mtgl\src\mtgl_ctx_win32.c" />
-    <ClCompile Include="..\mtgl\src\mtgl_input_private.c" />
+    <ClCompile Include="..\mtgl\src\mtgl_lock.c" />
     <ClCompile Include="..\mtgl\src\mtgl_win.c" />
     <ClCompile Include="..\mtgl\src\mtgl_win_win32.c" />
     <ClCompile Include="dependencies\src\glad\glad.c" />
@@ -161,9 +160,8 @@
   <ItemGroup>
     <ClInclude Include="..\mtgl\src\GL\glcorearb.h" />
     <ClInclude Include="..\mtgl\src\GL\wglext.h" />
-    <ClInclude Include="..\mtgl\src\mtglctx.h" />
+    <ClInclude Include="..\mtgl\src\mtgl_ctx.h" />
     <ClInclude Include="..\mtgl\src\mtgl_ctx_win32.h" />
-    <ClInclude Include="..\mtgl\src\mtgl_input_private.h" />
     <ClInclude Include="..\mtgl\src\mtgl_win.h" />
     <ClInclude Include="..\mtgl\src\mtgl_win_win32.h" />
   </ItemGroup>

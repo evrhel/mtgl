@@ -169,7 +169,6 @@ mtgl_ctx_create_win32(struct mtglwin_win32 *win, int ver_major, int ver_minor, m
 	HINSTANCE hInstance;
 	struct mtglctx_win32 *ctxw32 = 0;
 	PIXELFORMATDESCRIPTOR pfd;
-	int iPixelFormat;
 	int iOk;
 	int iPixelFormatARB;
 	UINT uiPixelFormatsFound;
@@ -250,7 +249,7 @@ mtgl_ctx_create_win32(struct mtglwin_win32 *win, int ver_major, int ver_minor, m
 	if (!ctxw32->hglrc) goto failure;
 
 	ctxw32->ctx.type = ctxtype_root;
-	ctxw32->ctx.win = win;
+	ctxw32->ctx.win = (mtglwin *)win;
 	ctxw32->ctx.ver_major = ver_major;
 	ctxw32->ctx.ver_minor = ver_minor;
 	ctxw32->ctx.profile = aiContextAttributes[PROFILE_VAL];
@@ -287,7 +286,7 @@ struct mtglctx_win32 *
 mtgl_ctx_clone_win32(struct mtglctx_win32 *ctx)
 {
 	struct mtglctx_win32 *clonedw32;
-	struct mtglwin_win32 *winw32 = ctx->ctx.win;
+	struct mtglwin_win32 *winw32 = (struct mtglwin_win32 *)ctx->ctx.win;
 	GLint aiContextAttributes[] = {
 		WGL_CONTEXT_MAJOR_VERSION_ARB, -1,
 		WGL_CONTEXT_MINOR_VERSION_ARB, -1,
@@ -342,7 +341,7 @@ failure:
 void
 mtgl_ctx_acquire_win32(struct mtglctx_win32 *ctx)
 {
-	struct mtglwin_win32 *winw32 = ctx->ctx.win;
+	struct mtglwin_win32 *winw32 = (struct mtglwin_win32 *)ctx->ctx.win;
 
 	mtgl_lock_acquire(ctx->ctx.lock);
 	ctx->ctx.nesting++;
@@ -353,7 +352,7 @@ mtgl_ctx_acquire_win32(struct mtglctx_win32 *ctx)
 int
 mtgl_ctx_try_acquire_win32(struct mtglctx_win32 *ctx)
 {
-	struct mtglwin_win32 *winw32 = ctx->ctx.win;
+	struct mtglwin_win32 *winw32 = (struct mtglwin_win32 *)ctx->ctx.win;
 
 	if (!mtgl_lock_try_acquire(ctx->ctx.lock)) return 0;
 
@@ -376,9 +375,9 @@ mtgl_ctx_release_win32(struct mtglctx_win32 *ctx)
 void
 mtgl_ctx_set_swap_interval_win32(struct mtglctx_win32 *ctx, int interval)
 {
-	mtgl_ctx_acquire(ctx);
+	mtgl_ctx_acquire_win32(ctx);
 	wglSwapIntervalEXT(interval);
-	mtgl_ctx_release(ctx);
+	mtgl_ctx_release_win32(ctx);
 }
 
 void
