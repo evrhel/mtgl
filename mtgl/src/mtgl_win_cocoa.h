@@ -20,8 +20,8 @@ extern "C"
         struct mtglwin win;
         
         void *window;       // NSWindow
-        void *delegate;     // id
-        void *view;         // id
+        void *delegate;     // MTGLWindowDelegate
+        void *view;         // MTGLView
         void *layer;        // id
 
         struct timespec start;

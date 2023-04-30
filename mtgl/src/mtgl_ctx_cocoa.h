@@ -14,11 +14,11 @@ extern "C"
     {
         struct mtglctx ctx;
         void *pixel_format; // id
-        void *context;      // id
+        void *context;      // NSOpenGLContext
     };
 
     struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_major, int ver_minor, mtglctxinitargs *argsp);
-	struct mtglctx_cocoa *mtgl_ctx_clone_cocoa(struct mtglwin_cocoa *ctx);
+	struct mtglctx_cocoa *mtgl_ctx_clone_cocoa(struct mtglctx_cocoa *ctx);
 	void mtgl_ctx_acquire_cocoa(struct mtglctx_cocoa *ctx);
 	int mtgl_ctx_try_acquire_cocoa(struct mtglctx_cocoa *ctx);
 	void mtgl_ctx_release_cocoa(struct mtglctx_cocoa *ctx);

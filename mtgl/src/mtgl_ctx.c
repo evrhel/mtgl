@@ -58,6 +58,8 @@ mtgl_ctx_clone(mtglctx *ctx)
 {
 #if _WIN32
 	return (mtglctx *)mtgl_ctx_clone_win32((struct mtglctx_win32 *)ctx);
+#elif __APPLE__
+	return (mtglctx *)mtgl_ctx_clone_cocoa((struct mtglctx_cocoa *)ctx);
 #else
 	return 0;
 #endif
@@ -68,6 +70,8 @@ mtgl_ctx_acquire(mtglctx *ctx)
 {
 #if _WIN32
 	mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
+#elif __APPLE__
+	mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
 }
 
@@ -76,6 +80,8 @@ mtgl_ctx_try_acquire(mtglctx *ctx)
 {
 #if _WIN32
 	return mtgl_ctx_try_acquire_win32((struct mtglctx_win32 *)ctx);
+#elif __APPLE__
+	return mtgl_ctx_try_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #else
 	return 0;
 #endif
@@ -86,6 +92,8 @@ mtgl_ctx_release(mtglctx *ctx)
 {
 #if _WIN32
 	mtgl_ctx_release_win32((struct mtglctx_win32 *)ctx);
+#elif __APPLE__
+	mtgl_ctx_release_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
 }
 
@@ -94,6 +102,8 @@ mtgl_ctx_set_swap_interval(mtglctx *ctx, int interval)
 {
 #if _WIN32
 	mtgl_ctx_set_swap_interval_win32((struct mtglctx_win32 *)ctx, interval);
+#elif __APPLE__
+	mtgl_ctx_set_swap_interval_cocoa((struct mtglctx_cocoa *)ctx, interval);
 #endif
 }
 
@@ -102,6 +112,8 @@ mtgl_ctx_destroy(mtglctx *ctx)
 {
 #if _WIN32
 	mtgl_ctx_destroy_win32((struct mtglctx_win32 *)ctx);
+#elif __APPLE__
+	mtgl_ctx_destroy_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
 }
 
@@ -110,6 +122,8 @@ mtgl_ctx_get_proc(const char *name)
 {
 #if _WIN32
 	return mtgl_ctx_get_proc_win32(name);
+#elif __APPLE__
+	return mtgl_ctx_get_proc_cocoa(name);
 #else
 	return 0;
 #endif

@@ -131,7 +131,11 @@ main(int argc, char *argv[])
 	mtgljoystickinfo jsinfo;
 	mtglctxinitargs args;
 
-	mtgl_init();
+	if (!mtgl_init())
+	{
+		fprintf(stderr, "Failed to initialize mtgl\n");
+		return 1;
+	}
 
 	while ((it = mtgl_enumerate_devices(it, &device, mtgl_device_type_any)))
 	{
@@ -157,7 +161,7 @@ main(int argc, char *argv[])
 	}
 
 	/* create OpenGL context from window */
-	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, &args);
+	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 4, 0, &args);
 	if (!prog_ctx.ctx)
 	{
 		fprintf(stderr, "Failed to create OpenGL context\n");
@@ -179,6 +183,7 @@ main(int argc, char *argv[])
 	/* Print OpenGL info */
 	printf("OpenGL:  %s\n", glGetString(GL_VERSION));
 	printf("GLSL:    %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	printf("Vendor:  %s\n", glGetString(GL_VENDOR));
 
 	glEnable(GL_MULTISAMPLE);
 
@@ -195,7 +200,7 @@ main(int argc, char *argv[])
 		return 1;
 	}
 #elif __posix__ || __linux__ || __APPLE__
-	pthread_create(&prog_ctx.worker, 0, loader_worker, &prog_ctx);
+	pthread_create(&prog_ctx.worker, 0, &loader_worker, &prog_ctx);
 #endif
 
 	mtgl_show_window(prog_ctx.win, 1); // show the window
@@ -275,6 +280,7 @@ main(int argc, char *argv[])
 	glDeleteVertexArrays(1, &prog_ctx.objects.tri_vao);
 
 	destroy_shaders(&prog_ctx);
+
 	mtgl_ctx_release(prog_ctx.ctx);
 
 	/* destroy the OpenGL context and window */

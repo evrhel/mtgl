@@ -50,8 +50,6 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
     id pixel_format;
     struct mtglctx_cocoa *ctx;
 
-    printf("createingcontext\n");
-
     @autoreleasepool
     {
         mtgl_lock_acquire(win->win.lock);
@@ -64,7 +62,7 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
         }
 
         /* load opengl framework */
-        if (nsgl_framework)
+        if (!nsgl_framework)
         {
             nsgl_framework = CFBundleGetBundleWithIdentifier(CFSTR("com.apple.opengl"));
             if (!nsgl_framework)
@@ -73,8 +71,6 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
                 return 0;
             }
         }
-
-        printf("framework loaded\n");
 
         version = mtgl_get_cocoa_gl_version(ver_major, ver_minor);
         if (!version)
@@ -142,8 +138,6 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
 
         attrs[attr_idx++] = 0;
 
-        printf("attributes set\n");
-
         /* choose pixel format */
         pixel_format = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
         if (!pixel_format)
@@ -152,8 +146,6 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
             return 0;
         }
 
-        printf("pixel format created\n");
-
         ctx = calloc(1, sizeof(struct mtglctx_cocoa));
         if (!ctx)
         {
@@ -161,16 +153,12 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
             return 0;
         }
 
-        printf("context wrapper created\n");
-
         ctx->ctx.lock = mtgl_lock_create();
         if (!ctx->ctx.lock)
         {
             free(ctx);
             return 0;
         }
-
-        printf("lock created\n");
 
         /* create context */
         ctx->context = [[NSOpenGLContext alloc]
@@ -181,8 +169,6 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
             mtgl_lock_release(win->win.lock);
             return 0;
         }
-
-        printf("opengl context created\n");
 
         ctx->pixel_format = pixel_format;
         ctx->ctx.type = ctxtype_root;
@@ -196,16 +182,15 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
         /* set main context */
         ctx->ctx.win->main = &ctx->ctx;
 
-        [(id)win->view setWantsBestResolutionOpenGLSurface:YES];
+        [(NSView *)win->view setWantsBestResolutionOpenGLSurface:YES];
 
         mtgl_lock_release(win->win.lock);
 
-        printf("finished!\n");
         return ctx;
     }
 }
 
-struct mtglctx_cocoa *mtgl_ctx_clone_cocoa(struct mtglwin_cocoa *ctx)
+struct mtglctx_cocoa *mtgl_ctx_clone_cocoa(struct mtglctx_cocoa *ctx)
 {
     // TODO
     return 0;
@@ -219,7 +204,7 @@ void mtgl_ctx_acquire_cocoa(struct mtglctx_cocoa *ctx)
     {
         @autoreleasepool
         {
-            [(id)ctx->context makeCurrentContext];
+            [(NSOpenGLContext *)ctx->context makeCurrentContext];
         }
     }
 }
@@ -234,7 +219,7 @@ int mtgl_ctx_try_acquire_cocoa(struct mtglctx_cocoa *ctx)
     {
         @autoreleasepool
         {
-            [(id)ctx->context makeCurrentContext];
+            [(NSOpenGLContext *)ctx->context makeCurrentContext];
         }
     }
 
@@ -248,7 +233,7 @@ void mtgl_ctx_release_cocoa(struct mtglctx_cocoa *ctx)
     {
         @autoreleasepool
         {
-            [(id)ctx->context clearCurrentContext];
+            [NSOpenGLContext clearCurrentContext];
         }
     }
     mtgl_lock_release(ctx->ctx.lock);
@@ -259,7 +244,7 @@ void mtgl_ctx_set_swap_interval_cocoa(struct mtglctx_cocoa *ctx, int interval)
     mtgl_lock_acquire(ctx->ctx.lock);
     @autoreleasepool
     {
-        [(id)ctx->context setValues:&interval
+        [(NSOpenGLContext *)ctx->context setValues:&interval
             forParameter:NSOpenGLCPSwapInterval];
     }
     mtgl_lock_release(ctx->ctx.lock);
@@ -281,9 +266,16 @@ void mtgl_ctx_destroy_cocoa(struct mtglctx_cocoa *ctx)
     @autoreleasepool
     {
         mtgl_lock_destroy(ctx->ctx.lock);
-        [(id)ctx->context release];
-        [(id)ctx->pixel_format release];
+        printf("lock destroyed\n");
+
+        [(NSOpenGLContext *)ctx->context release];
+        printf("context released\n");
+
+        [(NSOpenGLPixelFormat *)ctx->pixel_format release];
+        printf("pixel format released\n");
+
         free(ctx);
+        printf("context freed\n");
     }
 
     mtgl_lock_release(win->win.lock);
@@ -295,7 +287,7 @@ void *mtgl_ctx_get_proc_cocoa(const char *name)
     void *proc;
 
     symbol_name = CFStringCreateWithCString(
-                    NULL,
+                    kCFAllocatorDefault,
                     name,
                     kCFStringEncodingASCII
                 );

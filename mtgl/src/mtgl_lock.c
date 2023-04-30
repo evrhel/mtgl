@@ -33,7 +33,6 @@ mtgl_lock_create()
 #elif __posix__ || __linux__ || __APPLE__
 	pthread_mutex_init(&lock->mutex, 0);
 #endif
-
 	return lock;
 }
 
@@ -53,7 +52,7 @@ mtgl_lock_try_acquire(mtgllock *lock)
 #if _WIN32
 	return TryEnterCriticalSection(&lock->cs);
 #elif __posix__ || __linux__ || __APPLE__
-	return pthread_mutex_trylock(&lock->mutex);
+	return pthread_mutex_trylock(&lock->mutex) == 0;
 #endif
 }
 
