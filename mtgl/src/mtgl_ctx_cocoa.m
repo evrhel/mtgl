@@ -26,7 +26,9 @@ mtgl_get_cocoa_gl_version(int ver_major, int ver_minor)
     }
     else if (ver_major == 3)
     {
-        if (ver_minor == 2)
+        if (ver_minor == 3)
+            ver = NSOpenGLProfileVersion4_1Core;
+        else if (ver_minor == 2)
             ver = NSOpenGLProfileVersion3_2Core;
         else if (ver_minor == 1)
             ver = NSOpenGLProfileVersion3_2Core;
@@ -170,6 +172,8 @@ struct mtglctx_cocoa *mtgl_ctx_create_cocoa(struct mtglwin_cocoa *win, int ver_m
             return 0;
         }
 
+        [(NSOpenGLContext *)ctx->context setView:(id)win->view];
+
         ctx->pixel_format = pixel_format;
         ctx->ctx.type = ctxtype_root;
         ctx->ctx.win = &win->win;
@@ -266,16 +270,9 @@ void mtgl_ctx_destroy_cocoa(struct mtglctx_cocoa *ctx)
     @autoreleasepool
     {
         mtgl_lock_destroy(ctx->ctx.lock);
-        printf("lock destroyed\n");
-
         [(NSOpenGLContext *)ctx->context release];
-        printf("context released\n");
-
         [(NSOpenGLPixelFormat *)ctx->pixel_format release];
-        printf("pixel format released\n");
-
         free(ctx);
-        printf("context freed\n");
     }
 
     mtgl_lock_release(win->win.lock);

@@ -19,7 +19,7 @@ extern "C"
     {
         struct mtglwin win;
         
-        void *window;       // NSWindow
+        void *window;       // MTGLWindow
         void *delegate;     // MTGLWindowDelegate
         void *view;         // MTGLView
         void *layer;        // id

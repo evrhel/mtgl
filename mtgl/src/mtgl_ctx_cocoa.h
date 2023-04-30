@@ -13,7 +13,7 @@ extern "C"
     struct mtglctx_cocoa
     {
         struct mtglctx ctx;
-        void *pixel_format; // id
+        void *pixel_format; // NSOpenGLPixelFormat
         void *context;      // NSOpenGLContext
     };
 

@@ -34,8 +34,6 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 {
     struct event event;
 
-    printf("close\n");
-
     win->win.should_close = 1;
 
     event.type = mtgl_event_window_event;
@@ -50,18 +48,18 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 /* window resized */ 
 - (void)windowDidResize:(NSNotification *)notification
 {
-    struct event event;
+    NSRect content, fb;
     struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
-    NSRect rect = [(NSWindow *)win->window frame];
-
-    printf("resize\n");
-    
     if (ctx)
         [(NSOpenGLContext *)ctx->context update];
 
+    content = [(id)win->view frame];
+    fb = [(id)win->view convertRectToBacking:content];
+
+    win->win.width = fb.size.width;
+    win->win.height = fb.size.height;
+
     win->win.was_resized = 1;
-    event.type = mtgl_event_resize;
-    mtgl_push_event(&win->win, &event);
 }
 
 /* window moved */
@@ -69,9 +67,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 {
     struct event event;
     struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
-    NSPoint point = [(NSWindow *)win->window frame].origin;
-
-    printf("move\n");
+    NSPoint point = [(id)win->window frame].origin;
 
     if (ctx)
         [(NSOpenGLContext *)ctx->context update];
@@ -87,7 +83,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 - (void)windowDidMiniaturize:(NSNotification *)notification
 {
     struct event event;
-    NSRect rect = [(NSWindow *)win->window frame];
+    NSRect rect = [(NSView *)win->view frame];
 
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_minimize;
@@ -100,7 +96,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 - (void)windowDidDeminiaturize:(NSNotification *)notification
 {
     struct event event;
-    NSRect rect = [(NSWindow *)win->window frame];
+    NSRect rect = [(id)win->window frame];
 
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_restore;
@@ -114,8 +110,6 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 {
     struct event event;
 
-    printf("focus\n");
-
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_changefocus;
     event.data.window_event.param1 = 1;
@@ -127,8 +121,6 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 - (void)windowDidResignKey:(NSNotification *)notification
 {
     struct event event;
-
-    printf("unfocus\n");
 
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_changefocus;
@@ -176,7 +168,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
 - (BOOL)isOpaque
 {
-    return [(NSWindow *)win->window isOpaque];
+    return [(id)win->window isOpaque];
 }
 
 - (BOOL)canBecomeKeyView
@@ -199,8 +191,6 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
     if (ctx)
         [(NSOpenGLContext *)ctx->context update];
-
-    printf("update layer\n");
 }
 
 - (void)cursorUpdate:(NSEvent *)event
@@ -282,12 +272,20 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
 - (void)viewDidChangeBackingProperties
 {
+    NSRect content, fb;
+    float scale_x, scale_y;
 
+    content = [(id)win->view frame];
+    fb = [(id)win->view convertRectToBacking:content];
+    scale_x = fb.size.width / content.size.width;
+    scale_y = fb.size.height / content.size.height;
+
+    [(id)win->layer setContentsScale:[(id)win->window backingScaleFactor]];
 }
 
 - (void)drawRect:(NSRect)rect
 {
-    printf("drawRect\n");
+
 }
 
 - (void)updateTrackingAreas
@@ -298,8 +296,6 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
                                     NSTrackingCursorUpdate |
                                     NSTrackingInVisibleRect |
                                     NSTrackingAssumeInside;
-
-    printf("updateTrackingAreas\n");
 
     if (tracking_area)
     {
@@ -476,27 +472,27 @@ mtgl_init_cocoa_window(struct mtglwin_cocoa *win, int width, int height, int fla
 
         if (!win->window) return 0;
 
-        [(NSWindow *)win->window center];
+        [(MTGLWindow *)win->window center];
 
         behavior = NSWindowCollectionBehaviorFullScreenPrimary |
                 NSWindowCollectionBehaviorManaged;
-        [(NSWindow *)win->window setCollectionBehavior:behavior];
+        [(MTGLWindow *)win->window setCollectionBehavior:behavior];
 
-        [(NSWindow *)win->window setLevel:NSFloatingWindowLevel];
-        [(NSWindow *)win->window setFrameAutosaveName:@"MTGL"];
+        [(MTGLWindow *)win->window setLevel:NSFloatingWindowLevel];
+        [(MTGLWindow *)win->window setFrameAutosaveName:@"MTGL"];
 
         win->view = [[MTGLView alloc] initWithWindow:win];
         if (!win->view) return 0;
 
-        [(NSWindow *)win->window setContentView:win->view];
-        [(NSWindow *)win->window makeFirstResponder:win->view];
-        [(NSWindow *)win->window setTitle:@"MTGL"];
-        [(NSWindow *)win->window setDelegate:win->delegate];
-        [(NSWindow *)win->window setAcceptsMouseMovedEvents:YES];
-        [(NSWindow *)win->window setRestorable:NO];
+        [(MTGLWindow *)win->window setContentView:win->view];
+        [(MTGLWindow *)win->window makeFirstResponder:win->view];
+        [(MTGLWindow *)win->window setTitle:@"MTGL"];
+        [(MTGLWindow *)win->window setDelegate:win->delegate];
+        [(MTGLWindow *)win->window setAcceptsMouseMovedEvents:YES];
+        [(MTGLWindow *)win->window setRestorable:NO];
 
-        if ([(NSWindow *)win->window respondsToSelector:@selector(setTabbingMode)])
-            [(NSWindow *)win->window setTabbingMode:NSWindowTabbingModeDisallowed];
+        if ([(MTGLWindow *)win->window respondsToSelector:@selector(setTabbingMode)])
+            [(MTGLWindow *)win->window setTabbingMode:NSWindowTabbingModeDisallowed];
 
         return 1;
     }
@@ -513,7 +509,7 @@ mtgl_win_create_cocoa(const char *title, int width, int height, int flags, int d
     
     winc = calloc(1, sizeof(struct mtglwin_cocoa));
     if (!winc)
-    {
+    { 
         mtgl_lock_release(mtgl_get_lock());
         return 0;
     }
@@ -542,12 +538,11 @@ mtgl_win_create_cocoa(const char *title, int width, int height, int flags, int d
 
     @autoreleasepool
     {
-        rect = [(NSWindow *)winc->window frame];
+        rect = [(MTGLWindow *)winc->window frame];
         win->x = rect.origin.x;
         win->y = rect.origin.y;
         win->width = rect.size.width;
         win->height = rect.size.height;
-        printf("window size: %d %d\n", win->width, win->height);
     }
 
     mtgl_lock_release(mtgl_get_lock());
@@ -574,8 +569,8 @@ mtgl_set_title_cocoa(struct mtglwin_cocoa *win, const char *title)
     @autoreleasepool
     {
         string = [NSString stringWithUTF8String:title];
-        [(NSWindow *)win->window setTitle:string];
-        [(NSWindow *)win->window setMiniwindowTitle:string];
+        [(MTGLWindow *)win->window setTitle:string];
+        [(MTGLWindow *)win->window setMiniwindowTitle:string];
     }
 }
 
@@ -585,15 +580,17 @@ mtgl_show_window_cocoa(struct mtglwin_cocoa *win, int shown)
     @autoreleasepool
     {
         if (shown)
-            [(NSWindow *)win->window makeKeyAndOrderFront:nil];
+            [(MTGLWindow *)win->window makeKeyAndOrderFront:nil];
         else
-            [(NSWindow *)win->window orderOut:nil];
+            [(MTGLWindow *)win->window orderOut:nil];
     }
 }
 
 void
 mtgl_poll_events_cocoa(struct mtglwin_cocoa *win)
 {
+    struct event evt;
+
     @autoreleasepool
     {
         NSEvent *event;
@@ -621,10 +618,9 @@ mtgl_poll_events_cocoa(struct mtglwin_cocoa *win)
 
         if (win->win.was_resized)
         {
-            printf("resized\n");
-            rect = [(NSWindow *)win->window contentRectForFrameRect:[(NSWindow *)win->window frame]];
-            win->win.width = rect.size.width;
-            win->win.height = rect.size.height;
+            evt.type = mtgl_event_resize;
+            evt.win = &win->win;
+            mtgl_push_event(&win->win, &evt);
         }
 
         mtgl_dispatch_events(&win->win);
@@ -664,7 +660,7 @@ mtgl_get_full_size_cocoa(struct mtglwin_cocoa *win, int *width, int *height)
 {
     @autoreleasepool
     {
-        NSRect rect = [(NSWindow *)win->window contentRectForFrameRect:[(NSWindow *)win->window frame]];
+        NSRect rect = [(MTGLWindow *)win->window contentRectForFrameRect:[(MTGLWindow *)win->window frame]];
         *width = rect.size.width;
         *height = rect.size.height;
     }
@@ -675,10 +671,10 @@ mtgl_set_size_cocoa(struct mtglwin_cocoa *win, int width, int height)
 {
     @autoreleasepool
     {
-        NSRect rect = [(NSWindow *)win->window contentRectForFrameRect:[(NSWindow *)win->window frame]];
+        NSRect rect = [(MTGLWindow *)win->window contentRectForFrameRect:[(MTGLWindow *)win->window frame]];
         rect.origin.y += rect.size.height - height;
         rect.size = NSMakeSize(width, height);
-        [(NSWindow *)win->window setFrame:[(NSWindow *)win->window frameRectForContentRect:rect] display:YES];
+        [(MTGLWindow *)win->window setFrame:[(MTGLWindow *)win->window frameRectForContentRect:rect] display:YES];
     }
 }
 
@@ -720,6 +716,8 @@ mtgl_win_destroy_cocoa(struct mtglwin_cocoa *win)
         [(MTGLWindowDelegate *)win->delegate release];
         [(MTGLView *)win->view release];
         [(MTGLWindow *)win->window close];
+
+        mtgl_poll_events_cocoa(win);
     }
 
     free(win);
