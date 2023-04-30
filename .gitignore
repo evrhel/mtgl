@@ -18,5 +18,6 @@ mtgl/x64
 *.tlog
 *.lastbuildstate
 *.o
+example/bin/*
 mtgl/src/GL/*
 mtgl/include/KHR/*
