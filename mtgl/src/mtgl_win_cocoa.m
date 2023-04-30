@@ -1,10 +1,11 @@
 #if __APPLE__
 #include "mtgl_win_cocoa.h"
 
-#include <stdio.h>
-
 static int
 mtgl_cocoa_key_to_mtgl(int key) { return 0; }
+
+static int
+mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
 @interface MTGLWindowDelegate : NSObject
 {
@@ -25,39 +26,95 @@ mtgl_cocoa_key_to_mtgl(int key) { return 0; }
     return self;
 }
 
+/* window closing */
 - (BOOL)windowShouldClose:(id)sender
 {
-    return NO_ADDRESS;
+    struct event event;
+
+    win->win.should_close = 1;
+
+    event.type = mtgl_event_window_event;
+    event.data.window_event.event = mtgl_window_closing;
+    event.data.window_event.param1 = 0;
+    event.data.window_event.param2 = 0;
+    mtgl_push_event(&win->win, &event);
+
+    return NO; // closing controlled by user
 }
 
+/* window resized */ 
 - (void)windowDidResize:(NSNotification *)notification
 {
-    // TODO: this
+    struct event event;
+    NSRect rect = [(NSWindow *)win->window frame];
+
+    win->win.was_resized = 1;
+    
+    event.type = mtgl_event_resize;
+    mtgl_push_event(&win->win, &event);
 }
 
+/* window moved */
 - (void)windowDidMove:(NSNotification *)notification
 {
-    // TODO: this
+    struct event event;
+    NSPoint point = [(NSWindow *)win->window frame].origin;
+
+    event.type = mtgl_event_window_event;
+    event.data.window_event.event = mtgl_window_move;
+    event.data.window_event.param1 = point.x;
+    event.data.window_event.param2 = point.y;
+    mtgl_push_event(&win->win, &event);
 }
 
+/* window minimized */
 - (void)windowDidMiniaturize:(NSNotification *)notification
 {
-    // TODO: this
+    struct event event;
+    NSRect rect = [(NSWindow *)win->window frame];
+
+    event.type = mtgl_event_window_event;
+    event.data.window_event.event = mtgl_window_minimize;
+    event.data.window_event.param1 = rect.size.width;
+    event.data.window_event.param2 = rect.size.height;
+    mtgl_push_event(&win->win, &event);
 }
 
+/* window restored */
 - (void)windowDidDeminiaturize:(NSNotification *)notification
 {
-    // TODO: this
+    struct event event;
+    NSRect rect = [(NSWindow *)win->window frame];
+
+    event.type = mtgl_event_window_event;
+    event.data.window_event.event = mtgl_window_restore;
+    event.data.window_event.param1 = rect.size.width;
+    event.data.window_event.param2 = rect.size.height;
+    mtgl_push_event(&win->win, &event);
 }
 
+/* window focused */
 - (void)windowDidBecomeKey:(NSNotification *)notification
 {
-    // TODO: this
+    struct event event;
+
+    event.type = mtgl_event_window_event;
+    event.data.window_event.event = mtgl_window_changefocus;
+    event.data.window_event.param1 = 1;
+    event.data.window_event.param2 = 0;
+    mtgl_push_event(&win->win, &event);
 }
 
+/* window unfocused */
 - (void)windowDidResignKey:(NSNotification *)notification
 {
-    // TODO: this
+    struct event event;
+
+    event.type = mtgl_event_window_event;
+    event.data.window_event.event = mtgl_window_changefocus;
+    event.data.window_event.param1 = 0;
+    event.data.window_event.param2 = 0;
+    mtgl_push_event(&win->win, &event);
 }
 
 @end
@@ -128,29 +185,39 @@ mtgl_cocoa_key_to_mtgl(int key) { return 0; }
     return YES;
 }
 
-- (void)mouseDragged:(NSEvent *)event
+- (void)mouseMoved:(NSEvent *)event
 {
-
+    win->win.dmx += [event deltaX];
+    win->win.dmy += [event deltaY];
 }
 
 - (void)mouseDown:(NSEvent *)event
 {
-
+    struct event evt;
+    mtgl_push_button_event(&win->win, &evt, mtgl_pressed, mtgl_mouse1);
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-
+    struct event evt;
+    mtgl_push_button_event(&win->win, &evt, mtgl_released, mtgl_mouse1);
 }
 
-- (void)mouseMoved:(NSEvent *)event
+- (void)mouseDragged:(NSEvent *)event
 {
 
 }
 
 - (void)mouseRightDown:(NSEvent *)event
 {
+    struct event evt;
+    mtgl_push_button_event(&win->win, &evt, mtgl_pressed, mtgl_mouse2);
+}
 
+- (void)mouseRightUp:(NSEvent *)event
+{
+    struct event evt;
+    mtgl_push_button_event(&win->win, &evt, mtgl_released, mtgl_mouse2);
 }
 
 - (void)mouseRightDragged:(NSEvent *)event
@@ -158,14 +225,16 @@ mtgl_cocoa_key_to_mtgl(int key) { return 0; }
 
 }
 
-- (void)mouseRightUp:(NSEvent *)event
-{
-
-}
-
 - (void)otherMouseDown:(NSEvent *)event
 {
+    struct event evt;
+    mtgl_push_button_event(&win->win, &evt, mtgl_pressed, mtgl_mouse3);
+}
 
+- (void)otherMouseUp:(NSEvent *)event
+{
+    struct event evt;
+    mtgl_push_button_event(&win->win, &evt, mtgl_released, mtgl_mouse3);
 }
 
 - (void)otherMouseDragged:(NSEvent *)event
@@ -173,17 +242,12 @@ mtgl_cocoa_key_to_mtgl(int key) { return 0; }
 
 }
 
-- (void)otherMouseUp:(NSEvent *)event
+- (void)mouseEntered:(NSEvent *)event
 {
-    
+
 }
 
 - (void)mouseExited:(NSEvent *)event
-{
-
-}
-
-- (void)mouseEntered:(NSEvent *)event
 {
 
 }
@@ -205,21 +269,31 @@ mtgl_cocoa_key_to_mtgl(int key) { return 0; }
 
 - (void)keyDown:(NSEvent *)event
 {
-    int key;
-    key = mtgl_cocoa_key_to_mtgl([event keyCode]);
-    win->win.key_states[key] = mtgl_pressed;
+    struct event evt;
+    int key = mtgl_cocoa_key_to_mtgl([event keyCode]);
+
+    evt.type = mtgl_event_key;
+    evt.data.key.key = key;
+    evt.data.key.mods = win->win.mods;
+    evt.data.key.action = win->win.key_states[key] = mtgl_pressed;
+    mtgl_push_event(&win->win, &evt);
 }
 
 - (void)keyUp:(NSEvent *)event
 {
-    int key;
-    key = mtgl_cocoa_key_to_mtgl([event keyCode]);
-    win->win.key_states[key] = mtgl_released;
+    struct event evt;
+    int key = mtgl_cocoa_key_to_mtgl([event keyCode]);
+
+    evt.type = mtgl_event_key;
+    evt.data.key.key = key;
+    evt.data.key.mods = win->win.mods;
+    evt.data.key.action = win->win.key_states[key] = mtgl_released;
+    mtgl_push_event(&win->win, &evt);
 }
 
 - (void)flagsChanged:(NSEvent *)event
 {
-
+    win->win.flags = mtgl_cocoa_flags_to_mods_mtgl([event modifierFlags]);
 }
 
 - (void)scrollWheel:(NSEvent *)event
@@ -328,8 +402,6 @@ mtgl_init_cocoa_window(struct mtglwin_cocoa *win, int width, int height, int fla
     win->delegate = [[MTGLWindowDelegate alloc] initWithWindow:win];
     if (!win->delegate) return 0;
 
-    printf("delegate: %p\n", win->delegate);
-
     rect = NSMakeRect(0, 0, width, height);
 
     style = NSWindowStyleMaskMiniaturizable |
@@ -345,14 +417,10 @@ mtgl_init_cocoa_window(struct mtglwin_cocoa *win, int width, int height, int fla
 
     if (!win->window) return 0;
 
-    printf("window: %p\n", win->window);
-
     [(NSWindow *)win->window center];
 
     win->view = [[MTGLView alloc] initWithWindow:win];
     if (!win->view) return 0;
-
-    printf("view: %p\n", win->view);
 
     [(NSWindow *)win->window setContentView:win->view];
     [(NSWindow *)win->window setDelegate:win->delegate];
