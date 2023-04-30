@@ -1,6 +1,5 @@
 {
     "files.associations": {
-        "glcorearb.h": "c",
-        "mtgl_win_cocoa.h": "objective-c"
+        "glcorearb.h": "c"
     }
 }

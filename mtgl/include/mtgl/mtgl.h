@@ -61,6 +61,11 @@ extern "C" {
 
 		int depth_bits;
 		int stencil_bits;
+
+		int accum_red_bits;
+		int accum_green_bits;
+		int accum_blue_bits;
+		int accum_alpha_bits;
 	
 		int allow_sampling;
 		int sample_count;

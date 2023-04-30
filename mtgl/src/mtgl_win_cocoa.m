@@ -1,5 +1,8 @@
 #if __APPLE__
 #include "mtgl_win_cocoa.h"
+#include "mtgl_ctx_cocoa.h"
+
+#include <Cocoa/Cocoa.h>
 
 static int
 mtgl_cocoa_key_to_mtgl(int key) { return 0; }
@@ -399,54 +402,92 @@ mtgl_init_cocoa_window(struct mtglwin_cocoa *win, int width, int height, int fla
     NSRect rect;
     NSUInteger style;
 
-    win->delegate = [[MTGLWindowDelegate alloc] initWithWindow:win];
-    if (!win->delegate) return 0;
+    @autoreleasepool
+    {
+        win->delegate = [[MTGLWindowDelegate alloc] initWithWindow:win];
+        if (!win->delegate) return 0;
 
-    rect = NSMakeRect(0, 0, width, height);
+        rect = NSMakeRect(0, 0, width, height);
 
-    style = NSWindowStyleMaskMiniaturizable |
-            NSWindowStyleMaskTitled |
-            NSWindowStyleMaskClosable |
-            NSWindowStyleMaskResizable;
+        style = NSWindowStyleMaskMiniaturizable |
+                NSWindowStyleMaskTitled |
+                NSWindowStyleMaskClosable |
+                NSWindowStyleMaskResizable;
 
-    win->window = [[MTGLWindow alloc]
-        initWithContentRect:rect
-        styleMask:style
-        backing:NSBackingStoreBuffered
-        defer:NO];
+        win->window = [[MTGLWindow alloc]
+            initWithContentRect:rect
+            styleMask:style
+            backing:NSBackingStoreBuffered
+            defer:NO];
 
-    if (!win->window) return 0;
+        if (!win->window) return 0;
 
-    [(NSWindow *)win->window center];
+        [(NSWindow *)win->window center];
 
-    win->view = [[MTGLView alloc] initWithWindow:win];
-    if (!win->view) return 0;
+        win->view = [[MTGLView alloc] initWithWindow:win];
+        if (!win->view) return 0;
 
-    [(NSWindow *)win->window setContentView:win->view];
-    [(NSWindow *)win->window setDelegate:win->delegate];
-    [(NSWindow *)win->window makeFirstResponder:win->view];
-    [(NSWindow *)win->window setTitle:@"MTGL"];
-    [(NSWindow *)win->window setAcceptsMouseMovedEvents:YES];
-    [(NSWindow *)win->window setRestorable:NO];
+        [(NSWindow *)win->window setContentView:win->view];
+        [(NSWindow *)win->window setDelegate:win->delegate];
+        [(NSWindow *)win->window makeFirstResponder:win->view];
+        [(NSWindow *)win->window setTitle:@"MTGL"];
+        [(NSWindow *)win->window setAcceptsMouseMovedEvents:YES];
+        [(NSWindow *)win->window setRestorable:NO];
 
-    return 1;
+        return 1;
+    }
 }
 
 struct mtglwin_cocoa *
 mtgl_win_create_cocoa(const char *title, int width, int height, int flags, int device, void *user_data)
 {
-    struct mtglwin_cocoa *winc = calloc(1, sizeof(struct mtglwin_cocoa));
+    mtglwin *win;
+    struct mtglwin_cocoa *winc;
 
-    @autoreleasepool
+    mtgl_lock_acquire(mtgl_get_lock());
+    
+    winc = calloc(1, sizeof(struct mtglwin_cocoa));
+    if (!winc)
     {
-        if (!mtgl_init_cocoa_window(winc, width, height, flags, device))
-        {
-            free(winc);
-            return 0;
-        }
+        mtgl_lock_release(mtgl_get_lock());
+        return 0;
     }
+    win = &winc->win;
+
+    /* create lock */
+    win->lock = mtgl_lock_create();
+    if (!win->lock) goto failure;
+
+    /* initialize event queue */
+    win->events = calloc(EVENT_QUEUE_SIZE, sizeof(struct event));
+    if (!win->events) goto failure;
+
+    /* initialize callbacks */
+    win->callbacks = calloc(EVT_CB_COUNT, sizeof(union callback));
+    if (!win->callbacks) goto failure;
+
+    /* initialize joysticks */
+    win->joysticks = calloc(JOY_COUNT, sizeof(struct joystick));
+    if (!win->joysticks) goto failure;
+
+    win->user_data = user_data;
+
+    if (!mtgl_init_cocoa_window(winc, width, height, flags, device))
+        goto failure;
 
     return winc;
+
+failure:
+
+    if (win->lock) mtgl_lock_destroy(win->lock);
+    if (win->events) free(win->events);
+    if (win->callbacks) free(win->callbacks);
+    if (win->joysticks) free(win->joysticks);
+
+    free(winc);
+
+    mtgl_lock_release(mtgl_get_lock());
+    return 0;
 }
 
 void
@@ -511,7 +552,12 @@ mtgl_poll_events_cocoa(struct mtglwin_cocoa *win)
 void
 mtgl_swap_buffers_cocoa(struct mtglwin_cocoa *win)
 {
-
+    struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
+    @autoreleasepool
+    {
+        if (win->win.main)
+            [(id)ctx->context flushBuffer];
+    }
 }
 
 void
@@ -560,6 +606,14 @@ mtgl_get_time_cocoa(struct mtglwin_cocoa *win)
 void
 mtgl_win_destroy_cocoa(struct mtglwin_cocoa *win)
 {
+    mtgl_lock_acquire(mtgl_get_lock());
+
+    free(win->win.joysticks);
+    free(win->win.callbacks);
+    free(win->win.events);
+
+    mtgl_lock_destroy(win->win.lock);
+
     @autoreleasepool
     {
         [(NSWindow *)win->window release];
@@ -568,6 +622,8 @@ mtgl_win_destroy_cocoa(struct mtglwin_cocoa *win)
     }
 
     free(win);
+
+    mtgl_lock_release(mtgl_get_lock());
 }
 
 #endif

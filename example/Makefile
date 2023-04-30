@@ -1,18 +1,18 @@
 BIN := bin
-OBJ := gcc -O3 -I include -I dependencies/include -I ../mtgl/include -g -O -c
-OBJ_DB := gcc -Og -I include -I dependencies/include -I ../mtgl/include -g -O -c
+OBJ := gcc -O3 -D GL_SILENCE_DEPRECATION -I include -I dependencies/include -I ../mtgl/include -g -O -c
+OBJ_DB := gcc -Og -D GL_SILENCE_DEPRECATION -I include -I dependencies/include -I ../mtgl/include -g -O -c
 LNK := gcc -framework Cocoa -framework OpenGL -O3 -o
 LNK_DB := gcc -framework Cocoa -framework OpenGL -Og -o
 
-all: main.o shaders.o glad.o mtgl_ctx.o mtgl_lock.o mtgl_win.o mtgl.o mtgl_win_cocoa.o
+all: main.o shaders.o glad.o mtgl_ctx.o mtgl_lock.o mtgl_win.o mtgl.o mtgl_win_cocoa.o mtgl_ctx_cocoa.o
 	mkdir -p $(BIN)
 	$(LNK) $(BIN)/example $(BIN)/main.o $(BIN)/shaders.o $(BIN)/glad.o \
-		$(BIN)/mtgl_ctx.o $(BIN)/mtgl_lock.o $(BIN)/mtgl_win.o $(BIN)/mtgl.o $(BIN)/mtgl_win_cocoa.o
+		$(BIN)/mtgl_ctx.o $(BIN)/mtgl_lock.o $(BIN)/mtgl_win.o $(BIN)/mtgl.o $(BIN)/mtgl_win_cocoa.o $(BIN)/mtgl_ctx_cocoa.o
 
-debug: main_db.o shaders_db.o mtgl_db dependencies_db mtgl_ctx_db.o mtgl_lock_db.o mtgl_win_db.o mtgl_db.o mtgl_win_cocoa_db.os
+debug: main_db.o shaders_db.o mtgl_db dependencies_db mtgl_ctx_db.o mtgl_lock_db.o mtgl_win_db.o mtgl_db.o mtgl_win_cocoa_db.os mtgl_ctx_cocoa_db.o
 	mkdir -p $(BIN)
 	$(LNK_DB) $(BIN)/example $(BIN)/main_db.o $(BIN)/shaders_db.o $(BIN)/glad_db.o \
-		$(BIN)/mtgl_ctx_db.o $(BIN)/mtgl_lock_db.o $(BIN)/mtgl_win_db.o $(BIN)/mtgl_db.o $(BIN)/mtgl_win_cocoa_db.o
+		$(BIN)/mtgl_ctx_db.o $(BIN)/mtgl_lock_db.o $(BIN)/mtgl_win_db.o $(BIN)/mtgl_db.o $(BIN)/mtgl_win_cocoa_db.o $(BIN)/mtgl_ctx_cocoa_db.o
 
 clean:
 	rm -rf $(BIN)
@@ -86,3 +86,11 @@ mtgl_win_cocoa.o:
 mtgl_win_cocoa_db.o:
 	mkdir -p $(BIN)
 	$(OBJ_DB) -o $(BIN)/mtgl_win_cocoa_db.o ../mtgl/src/mtgl_win_cocoa.m
+
+mtgl_ctx_cocoa.o:
+	mkdir -p $(BIN)
+	$(OBJ) -o $(BIN)/mtgl_ctx_cocoa.o ../mtgl/src/mtgl_ctx_cocoa.m
+
+mtgl_ctx_cocoa_db.o:
+	mkdir -p $(BIN)
+	$(OBJ_DB) -o $(BIN)/mtgl_ctx_cocoa_db.o ../mtgl/src/mtgl_ctx_cocoa.m

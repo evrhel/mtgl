@@ -5,6 +5,8 @@
 #if _WIN32
 #include "mtgl_ctx_win32.h"
 #include "GL/wglext.h"
+#elif __APPLE__
+#include "mtgl_ctx_cocoa.h"
 #endif
 
 void
@@ -18,6 +20,11 @@ mtgl_ctx_get_default_init_args(mtglctxinitargs *args)
 	args->blue_bits = 8;
 	args->alpha_bits = 8;
 
+	args->accum_red_bits = 0;
+	args->accum_green_bits = 0;
+	args->accum_blue_bits = 0;
+	args->accum_alpha_bits = 0;
+
 	args->depth_bits = 24;
 	args->stencil_bits = 8;
 
@@ -27,10 +34,20 @@ mtgl_ctx_get_default_init_args(mtglctxinitargs *args)
 }
 
 mtglctx *
-mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *argsp)
+mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *args)
 {
+	mtglctxinitargs args2;
+
+	if (!args)
+	{
+		mtgl_ctx_get_default_init_args(&args2);
+		args = &args2;
+	}
+
 #if _WIN32
-	return (mtglctx *)mtgl_ctx_create_win32((struct mtglwin_win32 *)win, ver_major, ver_minor, argsp);
+	return (mtglctx *)mtgl_ctx_create_win32((struct mtglwin_win32 *)win, ver_major, ver_minor, args);
+#elif __APPLE__
+	return (mtglctx *)mtgl_ctx_create_cocoa((struct mtglwin_cocoa *)win, ver_major, ver_minor, args);
 #else
 	return 0;
 #endif
