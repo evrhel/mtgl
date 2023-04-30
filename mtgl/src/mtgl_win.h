@@ -15,8 +15,6 @@
 extern "C" {
 #endif
 
-	typedef unsigned char state_t;
-
 	/* data for specific event */
 	union event_data
 	{
@@ -27,42 +25,42 @@ extern "C" {
 
 		struct
 		{
-			int old_mx, old_my;
+			int old_mx, old_my; // old mouse position
 		} mouse_move;
 
 		struct
 		{
-			int key;
-			int action;
-			int mods;
+			int key;	// mtgl_key
+			int action; // mtgl_key_state
+			int mods;	// modifier keys
 		} key;
 
 		struct
 		{
-			unsigned int code;
-			int repeat_count;
-			int mods;
+			unsigned int code;	// unicode code point
+			int repeat_count;	// number of times the key was repeated
+			int mods;			// modifier keys
 		} char_;
 	
 		struct
 		{
-			int button;
-			int action;
-			int mods;
+			int button; // mtgl_mouse_button
+			int action;	// mtgl_key_state
+			int mods;	// modifier keys
 		} mouse_button;
 
 		struct
 		{
-			int event;
-			int param1;
-			int param2;
+			int event;	// mtgl_window_event
+			int param1; // first parameter
+			int param2;	// second parameter
 		} window_event;
 
 		struct
 		{
-			int type;
-			int state;
-			int id;
+			int type;	// mtgl_device_type
+			int state;	// mtgl_device_state
+			int id;		// device id
 		} device_event;
 
 		struct
@@ -93,6 +91,7 @@ extern "C" {
 		mtgl_user_event_cb_fn on_user_event;
 	};
 
+	/* common joystick info */
 	struct joystick
 	{
 		int connected;		// whether the joystick is connected
@@ -103,6 +102,7 @@ extern "C" {
 		char native[JOY_NATIVE_SIZE];	// native joystick handle
 	};
 
+	/* common window info across platforms */
 	struct mtglwin
 	{
 		mtglctx *main;		// main OpenGL context
@@ -132,10 +132,13 @@ extern "C" {
 		void *user_data;			// user data passed to creation function
 	};
 
-	/* event management */
-
+	/* push event to event queue */
 	int mtgl_push_event(mtglwin *, struct event *);
+
+	/* push button event */
 	int mtgl_push_button_event(mtglwin *win, struct event *event, int action, int button);
+
+	/* dispatch events and send to event callbacks */
 	void mtgl_dispatch_events(mtglwin *);
 
 #ifdef __cplusplus

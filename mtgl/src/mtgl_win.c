@@ -362,7 +362,7 @@ mtgl_get_joystick_count(mtglwin *win)
 }
 
 int
-mtgl_get_joystick_raw_state(mtglwin *win, int id, int *state)
+mtgl_get_joystick_raw_state(mtglwin *win, int id, mtglrawjoystickstate *state)
 {
 	struct joystick *joystick;
 
@@ -375,7 +375,7 @@ mtgl_get_joystick_raw_state(mtglwin *win, int id, int *state)
 }
 
 int
-mtgl_get_joystick_state(mtglwin *win, int id, int *state)
+mtgl_get_joystick_state(mtglwin *win, int id, mtgljoystickstate *state)
 {
 	int result;
 	int rawstate;

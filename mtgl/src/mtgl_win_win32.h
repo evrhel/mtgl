@@ -15,21 +15,23 @@
 extern "C"
 {
 #endif
+	/* Windows-specific joystick information */
 	struct joystick_win32
 	{
-		HIDP_CAPS caps;
-		PHIDP_BUTTON_CAPS pButtonCaps;
-		PHIDP_BUTTON_CAPS pValueCaps;
-		PFLOAT pDeadzones;
+		HIDP_CAPS caps;					// capabilities of the device
+		PHIDP_BUTTON_CAPS pButtonCaps;	// button capabilities
+		PHIDP_BUTTON_CAPS pValueCaps;	// value capabilities
+		PFLOAT pDeadzones;				// deadzones for each axis
 	};
 
+	/* Windows window */
 	struct mtglwin_win32
 	{
 		struct mtglwin win;
 
-		HWND hwnd;
-		HDC hdc;
-		HANDLE hHeap;
+		HWND hwnd;		// window handle
+		HDC hdc;		// device context
+		HANDLE hHeap;	// heap handle
 
 		RAWINPUTDEVICE rid[2];		// raw input devices
 		PHIDP_PREPARSED_DATA ppd;

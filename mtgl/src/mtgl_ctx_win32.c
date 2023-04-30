@@ -24,7 +24,6 @@
 #define VER_MINOR_VAL 3
 #define PROFILE_VAL 5
 
-static int gl_refs = 0;
 static HMODULE hGLModule = 0;
 static PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = 0;
 static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = 0;
@@ -123,8 +122,11 @@ mtgl_ctx_init_funcs_win32(HINSTANCE hInstance)
 	if (!wglMakeCurrent(hdc, hglrc)) goto failure;
 
 	/* load OpenGL module */
-	hGLModule = LoadLibraryA("OPENGL32.DLL");
-	if (!hGLModule) goto failure;
+	if (!hGLModule)
+	{
+		hGLModule = LoadLibraryA("OPENGL32.DLL");
+		if (!hGLModule) goto failure;
+	}
 
 	/* load library functions */
 	wglChoosePixelFormatARB = mtgl_ctx_get_proc("wglChoosePixelFormatARB");
@@ -149,12 +151,6 @@ failure:
 	wglCreateContextAttribsARB = 0;
 	wglChoosePixelFormatARB = 0;
 
-	if (hGLModule)
-	{
-		FreeLibrary(hGLModule);
-		hGLModule = 0;
-	}
-
 	if (hglrc) wglDeleteContext(hglrc);
 	if (hdc) ReleaseDC(hwnd, hdc);
 	if (hwnd) DestroyWindow(hwnd);
@@ -174,6 +170,7 @@ mtgl_ctx_create_win32(struct mtglwin_win32 *win, int ver_major, int ver_minor, m
 	UINT uiPixelFormatsFound;
 	mtglctxinitargs args;
 
+	/* pixel attributes */
 	float afAttributes[] = { 0, 0 };
 	int aiPixelAttributes[] = {
 		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,			// 0
@@ -189,6 +186,7 @@ mtgl_ctx_create_win32(struct mtglwin_win32 *win, int ver_major, int ver_minor, m
 		0
 	};
 
+	/* context attributes */
 	GLint aiContextAttributes[] = {
 		WGL_CONTEXT_MAJOR_VERSION_ARB, -1,
 		WGL_CONTEXT_MINOR_VERSION_ARB, -1,
@@ -221,7 +219,7 @@ mtgl_ctx_create_win32(struct mtglwin_win32 *win, int ver_major, int ver_minor, m
 	hInstance = GetModuleHandleA(NULL);
 
 	/* get necessary wgl funcs to create an instance */
-	if (gl_refs == 0 && !mtgl_ctx_init_funcs_win32(hInstance)) return 0;
+	if (!mtgl_ctx_init_funcs_win32(hInstance)) return 0;
 
 	ctxw32 = calloc(1, sizeof(struct mtglctx_win32));
 	if (!ctxw32) return 0;
@@ -254,8 +252,6 @@ mtgl_ctx_create_win32(struct mtglwin_win32 *win, int ver_major, int ver_minor, m
 	ctxw32->ctx.ver_minor = ver_minor;
 	ctxw32->ctx.profile = aiContextAttributes[PROFILE_VAL];
 
-	gl_refs++;
-
 	mtgl_lock_release(mtgl_get_lock());
 	return ctxw32;
 
@@ -266,16 +262,6 @@ failure:
 		if (ctxw32->hglrc) wglDeleteContext(ctxw32->hglrc);
 		if (ctxw32->ctx.lock) mtgl_lock_destroy(ctxw32->ctx.lock);
 		free(ctxw32);
-	}
-
-	if (gl_refs == 0)
-	{
-		FreeLibrary(hGLModule);
-		hGLModule = 0;
-		hGLModule = 0;
-		wglChoosePixelFormatARB = 0;
-		wglCreateContextAttribsARB = 0;
-		wglSwapIntervalEXT = 0;
 	}
 
 	mtgl_lock_release(mtgl_get_lock());
@@ -319,8 +305,6 @@ mtgl_ctx_clone_win32(struct mtglctx_win32 *ctx)
 	/* share the resources */
 	if (!wglShareLists(ctx->hglrc, clonedw32->hglrc)) goto failure;
 
-	gl_refs++;
-
 	mtgl_lock_release(ctx->ctx.lock);
 
 	return clonedw32;
@@ -334,7 +318,6 @@ failure:
 	}
 
 	mtgl_lock_release(ctx->ctx.lock);
-	mtgl_lock_release(mtgl_get_lock());
 	return 0;
 }
 
@@ -342,34 +325,13 @@ void
 mtgl_ctx_acquire_win32(struct mtglctx_win32 *ctx)
 {
 	struct mtglwin_win32 *winw32 = (struct mtglwin_win32 *)ctx->ctx.win;
-
-	mtgl_lock_acquire(ctx->ctx.lock);
-	ctx->ctx.nesting++;
-	if (ctx->ctx.nesting == 1)
-		wglMakeCurrent(winw32->hdc, ctx->hglrc);
-}
-
-int
-mtgl_ctx_try_acquire_win32(struct mtglctx_win32 *ctx)
-{
-	struct mtglwin_win32 *winw32 = (struct mtglwin_win32 *)ctx->ctx.win;
-
-	if (!mtgl_lock_try_acquire(ctx->ctx.lock)) return 0;
-
-	ctx->ctx.nesting++;
-	if (ctx->ctx.nesting == 1)
-		wglMakeCurrent(winw32->hdc, ctx->hglrc);
-
-	return 1;
+	wglMakeCurrent(winw32->hdc, ctx->hglrc);
 }
 
 void
 mtgl_ctx_release_win32(struct mtglctx_win32 *ctx)
 {
-	ctx->ctx.nesting--;
-	if (ctx->ctx.nesting == 0)
-		wglMakeCurrent(NULL, NULL);
-	mtgl_lock_release(ctx->ctx.lock);
+	wglMakeCurrent(NULL, NULL);
 }
 
 void
@@ -383,29 +345,15 @@ mtgl_ctx_set_swap_interval_win32(struct mtglctx_win32 *ctx, int interval)
 void
 mtgl_ctx_destroy_win32(struct mtglctx_win32 *ctx)
 {
-	mtgl_lock_acquire(mtgl_get_lock());
-	mtgl_lock_acquire(ctx->ctx.lock);
-
 	wglDeleteContext(ctx->hglrc);
-
-	mtgl_lock_release(ctx->ctx.lock);
-
-	gl_refs--;
-	if (gl_refs == 0)
-	{
-		FreeLibrary(hGLModule);
-		hGLModule = 0;
-	}
-
 	mtgl_lock_destroy(ctx->ctx.lock);
-	mtgl_lock_release(mtgl_get_lock());
-
 	free(ctx);
 }
 
 void *
 mtgl_ctx_get_proc_win32(const char *name)
 {
+	/* we try getting from wgl, then from OPENGL32.DLL if not found */
 	void *proc;
 	proc = wglGetProcAddress(name);
 	if (!proc && hGLModule) proc = GetProcAddress(hGLModule, name);

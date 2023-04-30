@@ -4,12 +4,15 @@
 
 #include <Cocoa/Cocoa.h>
 
+/* Convert cocoa key to mtgl key */
 static int
 mtgl_cocoa_key_to_mtgl(int key) { return 0; }
 
+/* Convert cocoa modifier flags to mtgl modifier flags */ 
 static int
 mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
+/* window delegate class */
 @interface MTGLWindowDelegate : NSObject
 {
     struct mtglwin_cocoa *win;
@@ -50,9 +53,10 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 {
     NSRect content, fb;
     struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
-    if (ctx)
+    if (ctx) // update the opengl context, if any
         [(NSOpenGLContext *)ctx->context update];
 
+    /* retrive the new size */ 
     content = [(id)win->view frame];
     fb = [(id)win->view convertRectToBacking:content];
 
@@ -69,9 +73,10 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
     NSPoint point = [(id)win->window frame].origin;
 
-    if (ctx)
+    if (ctx) // update the opengl context, if any
         [(NSOpenGLContext *)ctx->context update];
 
+    /* push a window move event */
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_move;
     event.data.window_event.param1 = point.x;
@@ -85,6 +90,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     struct event event;
     NSRect rect = [(NSView *)win->view frame];
 
+    /* push a window minimize event */
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_minimize;
     event.data.window_event.param1 = rect.size.width;
@@ -98,6 +104,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     struct event event;
     NSRect rect = [(id)win->window frame];
 
+    /* push a window restore event */
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_restore;
     event.data.window_event.param1 = rect.size.width;
@@ -110,6 +117,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 {
     struct event event;
 
+    /* push a window focus event */
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_changefocus;
     event.data.window_event.param1 = 1;
@@ -122,6 +130,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 {
     struct event event;
 
+    /* push a window focus event */
     event.type = mtgl_event_window_event;
     event.data.window_event.event = mtgl_window_changefocus;
     event.data.window_event.param1 = 0;
@@ -131,6 +140,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
 @end
 
+/* The view class */
 @interface MTGLView : NSView<NSTextInputClient>
 {
     struct mtglwin_cocoa *win;
@@ -181,15 +191,17 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     return YES;
 }
 
+/* always redraw */
 - (BOOL)wantsUpdateLayer
 {
     return YES;
 }
 
+/* called when view needs updating, which is always */
 - (void)updateLayer
 {
     struct mtglctx_cocoa *ctx = (struct mtglctx_cocoa *)win->win.main;
-    if (ctx)
+    if (ctx) // update the opengl context, if any
         [(NSOpenGLContext *)ctx->context update];
 }
 
@@ -203,46 +215,55 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     return YES;
 }
 
+/* called when mouse is moved */
 - (void)mouseMoved:(NSEvent *)event
 {
+    /* change the mouse delta */
     win->win.dmx += [event deltaX];
     win->win.dmy += [event deltaY];
 }
 
+/* called when mouse1 is pressed */
 - (void)mouseDown:(NSEvent *)event
 {
     struct event evt;
     mtgl_push_button_event(&win->win, &evt, mtgl_pressed, mtgl_mouse1);
 }
 
+/* called when mouse1 is released */
 - (void)mouseUp:(NSEvent *)event
 {
     struct event evt;
     mtgl_push_button_event(&win->win, &evt, mtgl_released, mtgl_mouse1);
 }
 
+/* called when mouse1 is dragged */
 - (void)mouseDragged:(NSEvent *)event
 {
     [self mouseMoved: event];
 }
 
+/* called when mouse2 is pressed */
 - (void)mouseRightDown:(NSEvent *)event
 {
     struct event evt;
     mtgl_push_button_event(&win->win, &evt, mtgl_pressed, mtgl_mouse2);
 }
 
+/* called when mouse2 is released */
 - (void)mouseRightUp:(NSEvent *)event
 {
     struct event evt;
     mtgl_push_button_event(&win->win, &evt, mtgl_released, mtgl_mouse2);
 }
 
+/* called when mouse2 is dragged */
 - (void)mouseRightDragged:(NSEvent *)event
 {
     [self mouseMoved: event];
 }
 
+/* This needs more work to allow for more buttons */
 - (void)otherMouseDown:(NSEvent *)event
 {
     struct event evt;
@@ -260,16 +281,19 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     
 }
 
+/* called when mouse has entered window */
 - (void)mouseEntered:(NSEvent *)event
 {
-
+    // TODO
 }
 
+/* called when mouse has left window */
 - (void)mouseExited:(NSEvent *)event
 {
-    
+    // TODO
 }
 
+/* called when backing store scale or color space changes */
 - (void)viewDidChangeBackingProperties
 {
     NSRect content, fb;
@@ -288,6 +312,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
 }
 
+/* called when view's frame changes */
 - (void)updateTrackingAreas
 {
     NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited |
@@ -309,9 +334,10 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
                                                 userInfo:nil];
 
     [self addTrackingArea:tracking_area];
-    [super updateTrackingAreas];
+    [super updateTrackingAreas]; // required
 }
 
+/* called when key is pressed */
 - (void)keyDown:(NSEvent *)event
 {
     struct event evt;
@@ -326,6 +352,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     [self interpretKeyEvents:@[event]];
 }
 
+/* called when key is released */
 - (void)keyUp:(NSEvent *)event
 {
     struct event evt;
@@ -338,11 +365,13 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     mtgl_push_event(&win->win, &evt);
 }
 
+/* called when a modifier key is pressed */
 - (void)flagsChanged:(NSEvent *)event
 {
     win->win.flags = mtgl_cocoa_flags_to_mods_mtgl([event modifierFlags]);
 }
 
+/* called when scroll wheel is used */
 - (void)scrollWheel:(NSEvent *)event
 {
     double scroll;
@@ -354,6 +383,7 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
     win->win.wheel += scroll;
 }
 
+/* called on a drag operation */
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender
 {
     return NSDragOperationGeneric;
@@ -428,16 +458,19 @@ mtgl_cocoa_flags_to_mods_mtgl(int flags) { return 0; }
 
 @end
 
+/* window class */
 @interface MTGLWindow: NSWindow { }
 @end
 
 @implementation MTGLWindow
 
+/* always want focus */
 - (BOOL)canBecomeKeyWindow
 {
     return YES;
 }
 
+/* always want main window */
 - (BOOL)canBecomeMainWindow
 {
     return YES;
@@ -454,6 +487,7 @@ mtgl_init_cocoa_window(struct mtglwin_cocoa *win, int width, int height, int fla
 
     @autoreleasepool
     {
+        /* create delegate */
         win->delegate = [[MTGLWindowDelegate alloc] initWithWindow:win];
         if (!win->delegate) return 0;
 
@@ -464,16 +498,19 @@ mtgl_init_cocoa_window(struct mtglwin_cocoa *win, int width, int height, int fla
                 NSWindowStyleMaskClosable |
                 NSWindowStyleMaskResizable;
 
+        /* create window */
         win->window = [[MTGLWindow alloc]
             initWithContentRect:rect
             styleMask:style
-            backing:NSBackingStoreBuffered
+            backing:NSBackingStoreBuffered // double buffered
             defer:NO];
 
         if (!win->window) return 0;
 
+        /* center window */
         [(MTGLWindow *)win->window center];
 
+        /* set window properties */
         behavior = NSWindowCollectionBehaviorFullScreenPrimary |
                 NSWindowCollectionBehaviorManaged;
         [(MTGLWindow *)win->window setCollectionBehavior:behavior];
@@ -533,11 +570,13 @@ mtgl_win_create_cocoa(const char *title, int width, int height, int flags, int d
 
     win->user_data = user_data;
 
+    /* initialize native window */
     if (!mtgl_init_cocoa_window(winc, width, height, flags, device))
         goto failure;
 
     @autoreleasepool
     {
+        /* retrieve position and size */
         rect = [(MTGLWindow *)winc->window frame];
         win->x = rect.origin.x;
         win->y = rect.origin.y;
@@ -604,6 +643,7 @@ mtgl_poll_events_cocoa(struct mtglwin_cocoa *win)
         win->win.dmy = 0;
         win->win.wheel = 0;
 
+        /* consume window events */
         for (;;)
         {
             event = [NSApp nextEventMatchingMask:NSEventMaskAny
@@ -613,16 +653,22 @@ mtgl_poll_events_cocoa(struct mtglwin_cocoa *win)
 
             if (!event) break;
 
+            /* execute event, handled by delegate */
             [NSApp sendEvent:event];
         }
 
+        /* push resize event */
         if (win->win.was_resized)
         {
+            // we must do this here, because windowDidResize is
+            // called continuously while resizing, and we only
+            // want to send the event once
             evt.type = mtgl_event_resize;
             evt.win = &win->win;
             mtgl_push_event(&win->win, &evt);
         }
 
+        /* dispatch events */
         mtgl_dispatch_events(&win->win);
 
         mtgl_lock_release(win->win.lock);
@@ -639,13 +685,14 @@ mtgl_swap_buffers_cocoa(struct mtglwin_cocoa *win)
     {
         if (win->win.main)
         {
-            // test if window occluded
+            /* vsync doesn't work when the window is hidden */
             if ([(MTGLView *)win->view isHiddenOrHasHiddenAncestor])
             {
                 interval = 0;
                 [(NSOpenGLContext *)ctx->context getValues:&interval
                     forParameter:NSOpenGLCPSwapInterval];
 
+                // TODO: take interval and refresh rate into account
                 if (interval > 0)
                     usleep(1000);
             }
@@ -688,14 +735,15 @@ float
 mtgl_get_time_cocoa(struct mtglwin_cocoa *win)
 {
     struct timespec current;
-    float cur_sec;
-    float start_sec;
+    long cur_ns, start_ns;
+    long diff_ns;
 
     clock_gettime(CLOCK_MONOTONIC, &current);
-    cur_sec = (float)current.tv_sec + (float)current.tv_nsec / 1000000000.0f;
-    start_sec = (float)win->start.tv_sec + (float)win->start.tv_nsec / 1000000000.0f;
+    cur_ns = current.tv_nsec + current.tv_sec * 1000000000;
+    start_ns = win->start.tv_nsec + win->start.tv_sec * 1000000000;
+    diff_ns = cur_ns - start_ns;
 
-    return cur_sec - start_sec;
+    return diff_ns / 1000000000.0f;
 }
 
 void
@@ -717,6 +765,7 @@ mtgl_win_destroy_cocoa(struct mtglwin_cocoa *win)
         [(MTGLView *)win->view release];
         [(MTGLWindow *)win->window close];
 
+        /* consume close event */
         mtgl_poll_events_cocoa(win);
     }
 

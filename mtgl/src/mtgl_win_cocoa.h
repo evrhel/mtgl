@@ -15,16 +15,17 @@ extern "C"
 {
 #endif
 
+    /* Cocoa window */
     struct mtglwin_cocoa
     {
-        struct mtglwin win;
+        struct mtglwin win; // base class
         
         void *window;       // MTGLWindow
         void *delegate;     // MTGLWindowDelegate
         void *view;         // MTGLView
         void *layer;        // id
 
-        struct timespec start;
+        struct timespec start;  // start time
     };
 
     struct mtglwin_cocoa *mtgl_win_create_cocoa(const char *title, int width, int height, int flags, int device, void *user_data);

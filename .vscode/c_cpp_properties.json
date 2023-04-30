@@ -15,6 +15,23 @@
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64"
+        },
+        {
+            "name": "msvc-x64",
+            "includePath": [
+                "${workspaceFolder}\\**",
+                "${workspaceFolder}\\mtgl\\include",
+                "${workspaceFolder}\\example\\dependencies\\include",
+                "${env.WindowsSdkDir}\\include\\${env.WindowsSDKVersion}\\ucrt",
+                "${env.NETFXSDKDir}\\include\\um",
+                "${env.WindowsSdkDir}\\include\\${env.WindowsSDKVersion}\\um",
+                "${env.WindowsSdkDir}\\include\\${env.WindowsSDKVersion}\\shared",
+                "${env.VCToolsInstallDir}\\include"
+            ],
+            "defines": [],
+            "cStandard": "c99",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
         }
     ],
     "version": 4

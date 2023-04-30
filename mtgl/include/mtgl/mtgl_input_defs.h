@@ -4,29 +4,54 @@
 extern "C" {
 #endif
 
+	// device types
 	enum mtgl_device_type
 	{
+		// no device
 		mtgl_device_type_none = 0x00,
 
+		// graphics device
 		mtgl_device_type_graphics = 0x01,
+
+		// mouse device
 		mtgl_device_type_mouse = 0x02,
+
+		// keyboard device
 		mtgl_device_type_keyboard = 0x04,
+
+		// joystick device
 		mtgl_device_type_joystick = 0x08,
+
+		// audio output device
 		mtgl_device_type_audio_out = 0x10,
+
+		// audio input device
 		mtgl_device_type_audio_in = 0x20,
 
+		// all devices
 		mtgl_device_type_any = -1
 	};
 
+	// device states
 	enum mtgl_device_state
 	{
+		// device is connected
 		mtgl_device_connected = 0,
+
+		// device is disconnected
 		mtgl_device_disconnected,
+
+		// an error occurred with the device
 		mtgl_device_error,
+		
+		// issue with the device driver
 		mtgl_device_driver_error,
+		
+		// device id is invalid
 		mtgl_device_bad_id
 	};
 
+	// window event callback types
 	enum mtgl_win_event_type
 	{
 		mtgl_event_resize,
@@ -45,33 +70,72 @@ extern "C" {
 		mtgl_event_last = mtgl_event_user4 + 1
 	};
 
+	// flags for window creation
 	enum mtgl_window_flag
 	{
+		// use raw keyboard input
 		mtgl_wf_raw_keyboard_input = 0x1,
+
+		// use raw mouse input
 		mtgl_wf_raw_mouse_input = 0x2,
+
+		// use raw joystick input
 		mtgl_wf_raw_joystick_input = 0x4,
+
+		// use raw gamepad input
 		mtgl_wf_raw_gamepad_input = 0x8,
+
+		// use all raw input
 		mtgl_wf_raw_input_mask =
 			mtgl_wf_raw_keyboard_input | mtgl_wf_raw_mouse_input |
 			mtgl_wf_raw_joystick_input | mtgl_wf_raw_gamepad_input
 	};
 
+	// window event types
 	enum mtgl_window_event
 	{
+		// window was maximized
+		// param1 = width of window
+		// param2 = height of window
 		mtgl_window_maximize,
+
+		// window was restored
+		// param1 = width of window
+		// param2 = height of window
 		mtgl_window_restore,
+
+		// window was minimized
+		// param1 = width of window
+		// param2 = height of window
 		mtgl_window_minimize,
+
+		// window is closing
+		// param1 = 0
+		// param2 = 0
 		mtgl_window_closing,
+
+		// window has moved
+		// param1 = x position of window
+		// param2 = y position of window
 		mtgl_window_move,
+
+		// window has been gained or lost focus
+		// param1 = 0 if focus was lost, 1 if focus was gained
+		// param2 = 0
 		mtgl_window_changefocus
 	};
 
+	// key and mouse button states
 	enum mtgl_key_state
 	{
+		// key or mouse button is up
 		mtgl_released,
+
+		// key or mouse button is down
 		mtgl_pressed
 	};
 
+	// mouse buttons
 	enum mtgl_mouse_button
 	{
 		mtgl_mouse1,
@@ -83,6 +147,7 @@ extern "C" {
 		mtgl_mouse_button_count = mtgl_mouse5 + 1
 	};
 
+	// keys
 	enum mtgl_key
 	{
 		mtgl_lbutton = 0x01,
@@ -282,6 +347,7 @@ extern "C" {
 		mtgl_key_count = 256
 	};
 
+	// joysticks
 	enum mtgl_joystick_id
 	{
 		mtgl_joystick1 = 0,
@@ -303,6 +369,7 @@ extern "C" {
 		mtgl_joystick_last = mtgl_joystick15 + 1
 	};
 
+	// gamepad buttons
 	enum mtgl_gamepad_button
 	{
 		mtgl_joystick_button1	= 0x00000001,
@@ -341,6 +408,7 @@ extern "C" {
 		mtgl_joystick_button_count = 32
 	};
 
+	// joystick information
 	typedef struct mtgljoystickinfo mtgljoystickinfo;
 	struct mtgljoystickinfo
 	{
@@ -364,6 +432,7 @@ extern "C" {
 		char product[32];
 	};
 	
+	// raw joystick state
 	typedef struct mtglrawjoystickstate mtglrawjoystickstate;
 	struct mtglrawjoystickstate
 	{
@@ -372,6 +441,7 @@ extern "C" {
 		int buttons[mtgl_joystick_button_count];
 	};
 
+	// joystick state
 	typedef struct mtgljoystickstate mtgljoystickstate;
 	struct mtgljoystickstate
 	{

@@ -36,6 +36,9 @@ mtgl_ctx_get_default_init_args(mtglctxinitargs *args)
 mtglctx *
 mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *args)
 {
+	mtglctx *ctx = 0;
+	mtgllock *statelock = 0;
+	mtglcondition *condition = 0;
 	mtglctxinitargs args2;
 
 	if (!args)
@@ -44,57 +47,91 @@ mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *arg
 		args = &args2;
 	}
 
+	condition = mtgl_condition_create();
+	if (!condition)
+		return 0;
+
 #if _WIN32
-	return (mtglctx *)mtgl_ctx_create_win32((struct mtglwin_win32 *)win, ver_major, ver_minor, args);
+	ctx = (mtglctx *)mtgl_ctx_create_win32((struct mtglwin_win32 *)win, ver_major, ver_minor, args);
 #elif __APPLE__
-	return (mtglctx *)mtgl_ctx_create_cocoa((struct mtglwin_cocoa *)win, ver_major, ver_minor, args);
-#else
-	return 0;
+	ctx = (mtglctx *)mtgl_ctx_create_cocoa((struct mtglwin_cocoa *)win, ver_major, ver_minor, args);
 #endif
+
+	if (ctx)
+		ctx->condition = condition;
+
+	return ctx;
 }
 
 mtglctx *
 mtgl_ctx_clone(mtglctx *ctx)
 {
+	mtglctx *nctx = 0;
+	mtglcondition *condition = 0;
+
+	condition = mtgl_condition_create();
+	if (!condition)
+		return 0;
+
 #if _WIN32
-	return (mtglctx *)mtgl_ctx_clone_win32((struct mtglctx_win32 *)ctx);
+	nctx = (mtglctx *)mtgl_ctx_clone_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-	return (mtglctx *)mtgl_ctx_clone_cocoa((struct mtglctx_cocoa *)ctx);
-#else
-	return 0;
+	nctx = (mtglctx *)mtgl_ctx_clone_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
+
+	if (ctx)
+		nctx->condition = condition;
+
+	return nctx;
 }
 
 void
 mtgl_ctx_acquire(mtglctx *ctx)
 {
+	mtgl_lock_acquire(ctx->lock);
+	ctx->nesting++;
+	if (ctx->nesting == 1)
 #if _WIN32
-	mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
+		mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-	mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
+		mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
 }
 
 int
 mtgl_ctx_try_acquire(mtglctx *ctx)
 {
+	int r = mtgl_lock_try_acquire(ctx->lock);
+	if (!r) return 0;
+
+	/* lock acquired */
+
+	ctx->nesting++;
+	if (ctx->nesting == 1)
 #if _WIN32
-	return mtgl_ctx_try_acquire_win32((struct mtglctx_win32 *)ctx);
+		mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-	return mtgl_ctx_try_acquire_cocoa((struct mtglctx_cocoa *)ctx);
+		mtgl_ctx_try_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #else
-	return 0;
+		return 0;
 #endif
+
+	return 1;
 }
 
 void
 mtgl_ctx_release(mtglctx *ctx)
 {
+	ctx->nesting--;
+
+	if (ctx->nesting == 0)
 #if _WIN32
-	mtgl_ctx_release_win32((struct mtglctx_win32 *)ctx);
+		mtgl_ctx_release_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-	mtgl_ctx_release_cocoa((struct mtglctx_cocoa *)ctx);
+		mtgl_ctx_release_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
+
+	mtgl_lock_release(ctx->lock);
 }
 
 void
@@ -110,6 +147,10 @@ mtgl_ctx_set_swap_interval(mtglctx *ctx, int interval)
 void
 mtgl_ctx_destroy(mtglctx *ctx)
 {
+	if (!ctx) return;
+
+	mtgl_condition_destroy(ctx->condition);
+
 #if _WIN32
 	mtgl_ctx_destroy_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__

@@ -10,6 +10,11 @@ struct mtgllock
 	CRITICAL_SECTION cs;
 };
 
+struct mtglcondition
+{
+	CONDITION_VARIABLE cv;
+};
+
 #elif __posix__ || __linux__ || __APPLE__
 #include <pthread.h>
 
@@ -79,4 +84,49 @@ mtgl_lock_destroy(mtgllock *lock)
 
 		free(lock);
 	}
+}
+
+mtglcondition *
+mtgl_condition_create()
+{
+	mtglcondition *condition;
+
+	condition = malloc(sizeof(mtglcondition));
+	if (!condition) return 0;
+
+#if _WIN32
+	InitializeConditionVariable(condition);
+#endif
+
+	return condition;
+}
+
+void
+mtgl_condition_destroy(mtglcondition *condition)
+{
+	free(condition);
+}
+
+void
+mtgl_condition_wait(mtglcondition *condition, mtgllock *lock)
+{
+#if _WIN32
+	SleepConditionVariableCS(&condition->cv, &lock->cs, INFINITE);
+#endif
+}
+
+void
+mtgl_condition_signal(mtglcondition *condition)
+{
+#if _WIN32
+	WakeConditionVariable(&condition->cv);
+#endif
+}
+
+void
+mtgl_condition_signal_all(mtglcondition *condition)
+{
+#if _WIN32
+	WakeAllConditionVariable(&condition->cv);
+#endif
 }

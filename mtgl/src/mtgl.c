@@ -3,6 +3,7 @@
 #if _WIN32
 #include <Windows.h>
 
+/* Windows device iterator */
 struct device_iterator_win32
 {
 	int current_device;
@@ -25,7 +26,10 @@ struct device_iterator_win32
 
 static mtgllock *lock = 0;
 
+// remove the device type from the filter and return the device type
 #define rnd(dt, filter) { *(filter) &= ~(dt); return (dt); }
+
+// return the next device type in the filter
 static inline int
 next_device(int *filter)
 {
@@ -41,6 +45,7 @@ next_device(int *filter)
 int
 mtgl_init()
 {
+	/* create api lock */
 	lock = mtgl_lock_create();
 	if (!lock) return 0;
 	return 1;
@@ -64,12 +69,14 @@ mtgl_enumerate_devices(void *it, mtgldevice *device, int filter)
 	RID_DEVICE_INFO di;
 	PRAWINPUTDEVICELIST pridl;
 
+	/* no more devices */
 	if (filter == mtgl_device_type_none)
 	{
 		mtgl_enumerate_devices_done(it);
 		return 0;
 	}
 
+	/* create device iterator */
 	if (!dit)
 	{
 		dit = malloc(sizeof(struct device_iterator_win32));
@@ -82,6 +89,7 @@ mtgl_enumerate_devices(void *it, mtgldevice *device, int filter)
 
 	memset(device, 0, sizeof(mtgldevice));
 
+	/* switch on the device we are iterating over */
 	switch (dit->current_device)
 	{
 	case mtgl_device_type_graphics: {

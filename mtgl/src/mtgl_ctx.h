@@ -13,6 +13,7 @@ struct mtglctx
 	int type;
 	mtglwin *win;
 	mtgllock *lock;
+	mtglcondition *condition;
 	int ver_major, ver_minor;
 	int profile;
 	int nesting;
