@@ -2,6 +2,8 @@
 
 #if _WIN32
 #include "mtgl_win_win32.h"
+#elif __APPLE__
+#include "mtgl_win_cocoa.h"
 #endif
 
 #include <assert.h>
@@ -124,6 +126,8 @@ mtgl_win_create(const char *title, int width, int height, int flags, int device,
 {
 #if _WIN32
 	return &mtgl_win_create_win32(title, width, height, flags, device, user_data)->win;
+#elif __APPLE__
+	return &mtgl_win_create_cocoa(title, width, height, flags, device, user_data)->win;
 #else
 	return 0;
 #endif
@@ -134,6 +138,8 @@ mtgl_set_title(mtglwin *win, const char *title)
 {
 #if _WIN32
 	mtgl_set_title_win32((struct mtglwin_win32 *)win, title);
+#elif __APPLE__
+	mtgl_set_title_cocoa((struct mtglwin_cocoa *)win, title);
 #endif
 }
 
@@ -148,6 +154,8 @@ mtgl_show_window(mtglwin *win, int shown)
 {
 #if _WIN32
 	mtgl_show_window_win32((struct mtglwin_win32 *)win, shown);
+#elif __APPLE__
+	mtgl_show_window_cocoa((struct mtglwin_cocoa *)win, shown);
 #endif
 }
 
@@ -189,6 +197,8 @@ mtgl_poll_events(mtglwin *win)
 {
 #if _WIN32
 	mtgl_poll_events_win32((struct mtglwin_win32 *)win);
+#elif __APPLE__
+	mtgl_poll_events_cocoa((struct mtglwin_cocoa *)win);
 #endif
 }
 
@@ -196,6 +206,8 @@ void mtgl_swap_buffers(mtglwin *win)
 {
 #if _WIN32
 	mtgl_swap_buffers_win32((struct mtglwin_win32 *)win);
+#elif __APPLE__
+	mtgl_swap_buffers_cocoa((struct mtglwin_cocoa *)win);
 #endif
 }
 
@@ -235,6 +247,8 @@ mtgl_get_full_size(mtglwin *win, int *width, int *height)
 {
 #if _WIN32
 	mtgl_get_full_size_win32((struct mtglwin_win32 *)win, width, height);
+#elif __APPLE__
+	mtgl_get_full_size_cocoa((struct mtglwin_cocoa *)win, width, height);
 #endif
 }
 
@@ -243,6 +257,8 @@ mtgl_set_size(mtglwin *win, int width, int height)
 {
 #if _WIN32
 	mtgl_set_size_win32((struct mtglwin_win32 *)win, width, height);
+#elif __APPLE__
+	mtgl_set_size_cocoa((struct mtglwin_cocoa *)win, width, height);
 #endif
 }
 
@@ -266,6 +282,8 @@ mtgl_set_pos(mtglwin *win, int x, int y)
 {
 #if _WIN32
 	mtgl_set_pos_win32((struct mtglwin_win32 *)win, x, y);
+#elif __APPLE__
+	mtgl_set_pos_cocoa((struct mtglwin_cocoa *)win, x, y);
 #endif
 }
 
@@ -323,6 +341,8 @@ mtgl_get_time(mtglwin *win)
 {
 #if _WIN32
 	return mtgl_get_time_win32((struct mtglwin_win32 *)win);
+#elif __APPLE__
+	return mtgl_get_time_cocoa((struct mtglwin_cocoa *)win);
 #else
 	return 0.0f;
 #endif
@@ -384,5 +404,7 @@ mtgl_win_destroy(mtglwin *win)
 	if (!win) return;
 #if _WIN32
 	mtgl_win_destroy_win32((struct mtglwin_win32 *)win);
+#elif __APPLE__
+	mtgl_win_destroy_cocoa((struct mtglwin_cocoa *)win);
 #endif
 }

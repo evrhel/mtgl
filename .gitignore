@@ -18,6 +18,7 @@ mtgl/x64
 *.tlog
 *.lastbuildstate
 *.o
+*.DS_Store
 example/bin/*
 mtgl/src/GL/*
 example/dependencies/include/KHR/*
