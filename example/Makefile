@@ -65,7 +65,7 @@ mtgl_lock_db.o:
 
 mtgl_win.o:
 	mkdir -p $(BIN)
-	$(OBJ) -o $(BIN)/mtgl_win.o src/mtgl_win.c
+	$(OBJ) -o $(BIN)/mtgl_win.o ../mtgl/src/mtgl_win.c
 
 mtgl_win_db.o:
 	mkdir -p $(BIN)
