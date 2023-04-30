@@ -187,6 +187,13 @@ main(int argc, char *argv[])
 	/* create a worker thread to load OpenGL resources */
 #if _WIN32
 	prog_ctx.hWorker = CreateThread(0, 0, loader_worker, &prog_ctx, 0, 0);
+	if (!prog_ctx.hWorker)
+	{
+		fprintf(stderr, "CreateThread failed");
+		mtgl_ctx_destroy(prog_ctx.ctx);
+		mtgl_win_destroy(prog_ctx.win);
+		return 1;
+	}
 #elif __posix__ || __linux__ || __APPLE__
 	pthread_create(&prog_ctx.worker, 0, loader_worker, &prog_ctx);
 #endif

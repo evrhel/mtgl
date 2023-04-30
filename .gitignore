@@ -20,4 +20,4 @@ mtgl/x64
 *.o
 example/bin/*
 mtgl/src/GL/*
-mtgl/include/KHR/*
+example/dependencies/include/KHR/*

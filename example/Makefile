@@ -1,22 +1,20 @@
 BIN := bin
-MTGL_BIN := ../mtgl/bin
 OBJ := gcc -O3 -I include -I dependencies/include -I ../mtgl/include -g -O -c
 OBJ_DB := gcc -Og -I include -I dependencies/include -I ../mtgl/include -g -O -c
 LNK := gcc -O3 -o
 LNK_DB := gcc -Og -o
 
-all: main.o shaders.o glad.o mtgl
+all: main.o shaders.o glad.o mtgl_ctx.o mtgl_lock.o mtgl_win.o mtgl.o
 	mkdir -p $(BIN)
 	$(LNK) $(BIN)/example $(BIN)/main.o $(BIN)/shaders.o $(BIN)/glad.o \
-		$(MTGL_BIN)/mtgl_ctx.o $(MTGL_BIN)/mtgl_lock.o $(MTGL_BIN)/mtgl_win.o $(MTGL_BIN)/mtgl.o 
+		$(BIN)/mtgl_ctx.o $(BIN)/mtgl_lock.o $(BIN)/mtgl_win.o $(BIN)/mtgl.o 
 
-debug: main_db.o shaders_db.o mtgl_db dependencies_db
+debug: main_db.o shaders_db.o mtgl_db dependencies_db mtgl_ctx_db.o mtgl_lock_db.o mtgl_win_db.o mtgl_db.o
 	mkdir -p $(BIN)
 	$(LNK_DB) $(BIN)/example $(BIN)/main_db.o $(BIN)/shaders_db.o $(BIN)/glad_db.o \
-		$(MTGL_BIN)/mtgl_ctx_db.o $(MTGL_BIN)/mtgl_lock_db.o $(MTGL_BIN)/mtgl_win_db.o $(MTGL_BIN)/mtgl_db.o
+		$(BIN)/mtgl_ctx_db.o $(BIN)/mtgl_lock_db.o $(BIN)/mtgl_win_db.o $(BIN)/mtgl_db.o
 
 clean:
-	make -C ../mtgl clean
 	rm -rf $(BIN)
 
 mtgl:
@@ -48,3 +46,35 @@ glad.o:
 glad_db.o:
 	mkdir -p $(BIN)
 	$(OBJ_DB) -o $(BIN)/glad_db.o dependencies/src/glad/glad.c
+
+mtgl_ctx.o:
+	mkdir -p $(BIN)
+	$(OBJ) -o $(BIN)/mtgl_ctx.o ../mtgl/src/mtgl_ctx.c
+
+mtgl_ctx_db.o:
+	mkdir -p $(BIN)
+	$(OBJ_DB) -o $(BIN)/mtgl_ctx_db.o ../mtgl/src/mtgl_ctx.c
+
+mtgl_lock.o:
+	mkdir -p $(BIN)
+	$(OBJ) -o $(BIN)/mtgl_lock.o ../mtgl/src/mtgl_lock.c
+
+mtgl_lock_db.o:
+	mkdir -p $(BIN)
+	$(OBJ_DB) -o $(BIN)/mtgl_lock_db.o ../mtgl/src/mtgl_lock.c
+
+mtgl_win.o:
+	mkdir -p $(BIN)
+	$(OBJ) -o $(BIN)/mtgl_win.o src/mtgl_win.c
+
+mtgl_win_db.o:
+	mkdir -p $(BIN)
+	$(OBJ_DB) -o $(BIN)/mtgl_win_db.o ../mtgl/src/mtgl_win.c
+
+mtgl.o:
+	mkdir -p $(BIN)
+	$(OBJ) -o $(BIN)/mtgl.o ../mtgl/src/mtgl.c
+
+mtgl_db.o:
+	mkdir -p $(BIN)
+	$(OBJ_DB) -o $(BIN)/mtgl_db.o ../mtgl/src/mtgl.c

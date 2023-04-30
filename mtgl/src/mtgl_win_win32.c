@@ -29,14 +29,14 @@ handle_input_device_event_win32(struct mtglwin_win32 *win, HANDLE hDevice, enum 
 	RID_DEVICE_INFO di = { 0 };
 	UINT cbSize;
 	PHIDP_PREPARSED_DATA ppd;
-	char name[128];
+	// name[128];
 	UINT uiResult;
 	int id = -1;
 	int type = mtgl_device_type_none;
 	NTSTATUS status;
 	HIDP_CAPS caps;
-	PHIDP_BUTTON_CAPS buttoncaps;
-	PHIDP_VALUE_CAPS valuecaps;
+	// PHIDP_BUTTON_CAPS buttoncaps;
+	// PHIDP_VALUE_CAPS valuecaps;
 
 	cbSize = sizeof(di);
 	uiResult = GetRawInputDeviceInfoA(
@@ -85,12 +85,12 @@ handle_input_device_event_win32(struct mtglwin_win32 *win, HANDLE hDevice, enum 
 
 	if (type == mtgl_device_type_none) return;
 
-	win->win.callbacks[mtgl_event_device_event].on_device_event(win, type, state, id);
+	win->win.callbacks[mtgl_event_device_event].on_device_event(&win->win, type, state, id);
 
 }
 
 static int
-handle_raw_input_win32(mtglwin *win, DWORD dwCode, HRAWINPUT hRawInput)
+handle_raw_input_win32(struct mtglwin_win32 *win, DWORD dwCode, HRAWINPUT hRawInput)
 {
 	RAWINPUT raw[sizeof(RAWINPUT)];
 	PRAWMOUSE rm;
@@ -110,19 +110,19 @@ handle_raw_input_win32(mtglwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 
 		if (rm->lLastX || rm->lLastY)
 		{
-			win->dmx += rm->lLastX;
-			win->dmy -= rm->lLastY;
+			win->win.dmx += rm->lLastX;
+			win->win.dmy -= rm->lLastY;
 		}
 
 		if (rm->usButtonFlags & RI_MOUSE_WHEEL)
-			win->wheel += (*(SHORT *)&rm->usButtonData) / WHEEL_DELTA;
+			win->win.wheel += (*(SHORT *)&rm->usButtonData) / WHEEL_DELTA;
 
 		// see WinUser.h
 		button_id = RI_MOUSE_BUTTON_1_DOWN;
 		for (button_num = 0; button_num < 5; button_num++, button_id <<= 2)
 		{
-			if (rm->usButtonFlags & (button_id)) mtgl_push_button_event(win, &event, mtgl_pressed, mtgl_mouse1 + button_id);
-			if (rm->usButtonFlags & (button_id << 1)) mtgl_push_button_event(win, &event, mtgl_released, mtgl_mouse1 + button_id);
+			if (rm->usButtonFlags & (button_id)) mtgl_push_button_event(&win->win, &event, mtgl_pressed, mtgl_mouse1 + button_id);
+			if (rm->usButtonFlags & (button_id << 1)) mtgl_push_button_event(&win->win, &event, mtgl_released, mtgl_mouse1 + button_id);
 		}
 
 		break;
@@ -135,21 +135,21 @@ handle_raw_input_win32(mtglwin *win, DWORD dwCode, HRAWINPUT hRawInput)
 
 		event.type = mtgl_event_key;
 		event.data.key.key = vk;
-		event.data.key.mods = win->mods;
+		event.data.key.mods = win->win.mods;
 
 		switch (rk->Message)
 		{
 		case WM_KEYDOWN: {
-			if (!win->key_states[vk])
+			if (!win->win.key_states[vk])
 			{
-				event.data.key.action = win->key_states[vk] = mtgl_pressed;
-				mtgl_push_event(win, &event);
+				event.data.key.action = win->win.key_states[vk] = mtgl_pressed;
+				mtgl_push_event(&win->win, &event);
 			}
 			break;
 		}
 		case WM_KEYUP: {
-			event.data.key.action = win->key_states[vk] = mtgl_released;
-			mtgl_push_event(win, &event);
+			event.data.key.action = win->win.key_states[vk] = mtgl_released;
+			mtgl_push_event(&win->win, &event);
 			break;
 		}
 		case WM_SYSKEYDOWN:
@@ -178,17 +178,17 @@ handle_raw_input_device_change_win32(struct mtglwin_win32 *win, WPARAM wParam, H
 static int
 mtgl_query_joystick_win32(HANDLE hDevice, struct joystick *joystick)
 {
-	RID_DEVICE_INFO di;
+	// RID_DEVICE_INFO di;
 	UINT cbSize;
-	PHIDP_PREPARSED_DATA ppd;
-	char name[128];
+	// PHIDP_PREPARSED_DATA ppd;
+	// char name[128];
 	UINT uiResult;
 	int id = -1;
 	enum mtgl_device_type type = mtgl_device_type_none;
-	NTSTATUS status;
-	HIDP_CAPS caps;
-	PHIDP_BUTTON_CAPS buttoncaps;
-	PHIDP_VALUE_CAPS valuecaps;
+	// NTSTATUS status;
+	// HIDP_CAPS caps;
+	// PHIDP_BUTTON_CAPS buttoncaps;
+	// PHIDP_VALUE_CAPS valuecaps;
 	HANDLE hHeap;
 
 	hHeap = GetProcessHeap();
@@ -222,7 +222,7 @@ mtgl_poll_joystick_win32(HANDLE hDevice, struct joystick *joystick)
 static void
 mtgl_release_joystick_win32(struct joystick *joystick)
 {
-	struct joystick_win32 *joyw32 = joystick->native;
+	struct joystick_win32 *joyw32 = (struct joystick_win32 *)joystick->native;
 
 	if (joyw32->pButtonCaps) free(joyw32->pButtonCaps);
 	if (joyw32->pValueCaps) free(joyw32->pValueCaps);
@@ -237,7 +237,7 @@ glwin_register_input_devices_win32(struct mtglwin_win32 *win)
 }
 
 static LRESULT
-glwin_handle_input_message_win32(mtglwin *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+glwin_handle_input_message_win32(struct mtglwin_win32 *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	struct event event;
 
@@ -253,7 +253,7 @@ glwin_handle_input_message_win32(mtglwin *win, HWND hwnd, UINT uMsg, WPARAM wPar
 		event.data.char_.code = (UINT)wParam;
 		event.data.char_.repeat_count = (int)(0x0f & lParam);
 		event.data.char_.mods = 0;
-		mtgl_push_event(win, &event);
+		mtgl_push_event(&win->win, &event);
 		return 0;
 	}
 
@@ -398,7 +398,7 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SYSCHAR:
 	case WM_INPUT:
 	case WM_INPUT_DEVICE_CHANGE:
-		return glwin_handle_input_message_win32(win, hwnd, uMsg, wParam, lParam);
+		return glwin_handle_input_message_win32((struct mtglwin_win32 *)win, hwnd, uMsg, wParam, lParam);
 		break;
 	}
 
@@ -434,8 +434,10 @@ mtgl_win_create_win32(const char *title, int width, int height, int flags, int d
 		if (!atom) 0;
 	}
 
-	win = winw32 = calloc(1, sizeof(struct mtglwin_win32));
+	win = 0;
+	winw32 = calloc(1, sizeof(struct mtglwin_win32));
 	if (!winw32) goto failure;
+	win = &winw32->win;
 
 	win->lock = mtgl_lock_create();
 	if (!win->lock) goto failure;
@@ -586,7 +588,7 @@ mtgl_poll_events_win32(struct mtglwin_win32 *win)
 	}
 
 	/* call user callbacks */
-	mtgl_dispatch_events(win);
+	mtgl_dispatch_events(&win->win);
 
 	mtgl_lock_release(win->win.lock);
 }

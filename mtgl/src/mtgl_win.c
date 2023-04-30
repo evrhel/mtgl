@@ -123,7 +123,7 @@ mtglwin *
 mtgl_win_create(const char *title, int width, int height, int flags, int device, void *user_data)
 {
 #if _WIN32
-	return mtgl_win_create_win32(title, width, height, flags, device, user_data);
+	return &mtgl_win_create_win32(title, width, height, flags, device, user_data)->win;
 #else
 	return 0;
 #endif
@@ -133,7 +133,7 @@ void
 mtgl_set_title(mtglwin *win, const char *title)
 {
 #if _WIN32
-	mtgl_set_title_win32(win, title);
+	mtgl_set_title_win32((struct mtglwin_win32 *)win, title);
 #endif
 }
 
@@ -147,7 +147,7 @@ void
 mtgl_show_window(mtglwin *win, int shown)
 {
 #if _WIN32
-	mtgl_show_window_win32(win, shown);
+	mtgl_show_window_win32((struct mtglwin_win32 *)win, shown);
 #endif
 }
 
@@ -188,14 +188,14 @@ void
 mtgl_poll_events(mtglwin *win)
 {
 #if _WIN32
-	mtgl_poll_events_win32(win);
+	mtgl_poll_events_win32((struct mtglwin_win32 *)win);
 #endif
 }
 
 void mtgl_swap_buffers(mtglwin *win)
 {
 #if _WIN32
-	mtgl_swap_buffers_win32(win);
+	mtgl_swap_buffers_win32((struct mtglwin_win32 *)win);
 #endif
 }
 
@@ -234,7 +234,7 @@ void
 mtgl_get_full_size(mtglwin *win, int *width, int *height)
 {
 #if _WIN32
-	mtgl_get_full_size_win32(win, width, height);
+	mtgl_get_full_size_win32((struct mtglwin_win32 *)win, width, height);
 #endif
 }
 
@@ -242,7 +242,7 @@ void
 mtgl_set_size(mtglwin *win, int width, int height)
 {
 #if _WIN32
-	mtgl_set_size(win, width, height);
+	mtgl_set_size_win32((struct mtglwin_win32 *)win, width, height);
 #endif
 }
 
@@ -265,7 +265,7 @@ void
 mtgl_set_pos(mtglwin *win, int x, int y)
 {
 #if _WIN32
-	mtgl_set_pos_win32(win, x, y);
+	mtgl_set_pos_win32((struct mtglwin_win32 *)win, x, y);
 #endif
 }
 
@@ -322,7 +322,7 @@ float
 mtgl_get_time(mtglwin *win)
 {
 #if _WIN32
-	return mtgl_get_time_win32(win);
+	return mtgl_get_time_win32((struct mtglwin_win32 *)win);
 #else
 	return 0.0f;
 #endif
@@ -383,6 +383,6 @@ mtgl_win_destroy(mtglwin *win)
 {
 	if (!win) return;
 #if _WIN32
-	mtgl_win_destroy_win32(win);
+	mtgl_win_destroy_win32((struct mtglwin_win32 *)win);
 #endif
 }

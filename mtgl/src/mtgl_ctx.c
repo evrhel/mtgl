@@ -1,11 +1,11 @@
 #include "mtgl_ctx.h"
 
+#include "GL/glcorearb.h"
+
 #if _WIN32
 #include "mtgl_ctx_win32.h"
 #include "GL/wglext.h"
 #endif
-
-#include "GL/glcorearb.h"
 
 void
 mtgl_ctx_get_default_init_args(mtglctxinitargs *args)
@@ -58,7 +58,7 @@ int
 mtgl_ctx_try_acquire(mtglctx *ctx)
 {
 #if _WIN32
-	mtgl_ctx_try_acquire_win32((struct mtglctx_win32 *)ctx);
+	return mtgl_ctx_try_acquire_win32((struct mtglctx_win32 *)ctx);
 #else
 	return 0;
 #endif

@@ -1,27 +1,45 @@
 #!/bin/bash
 
-cd mtgl
+echo $OSTYPE
 
-mkdir include
+cd example
 
-cd -P include
+mkdir -p dependencies
+
+cd dependencies
+
+mkdir -p include
+
+# ./example/dependencies/include
+cd include
 
 # khrplatform.h
-mkdir KHR
-wget -O KHR/khrplatform.h https://registry.khronos.org/EGL/api/KHR/khrplatform.h
+mkdir -p KHR
+curl https://registry.khronos.org/EGL/api/KHR/khrplatform.h --output KHR/khrplatform.h
 
-# mtgl/src
-cd ../src
+# ./example/dependencies
+cd ..
 
-mkdir GL
+# ./example
+cd ..
+
+# ./
+cd ..
+
+# ./mtgl
+cd mtgl
+
+# ./mtgl/src
+cd src
+
+mkdir -p GL
 
 # glcorearb.h
-wget -O GL/glcorearb.h https://registry.khronos.org/OpenGL/api/GL/glcorearb.h
+curl https://registry.khronos.org/OpenGL/api/GL/glcorearb.h --output GL/glcorearb.h
 
-if [[ "$OS_TYPE" == "win32"* ]]; then
+if [[ "$OSTYPE" == "msys"* ]]; then
     # windows specific
 
     # wglext.h
-    mkdir GL
-    wget -O GL/wglext.h https://registry.khronos.org/OpenGL/api/GL/wglext.h
+    curl https://registry.khronos.org/OpenGL/api/GL/wglext.h --output GL/wglext.h
 fi

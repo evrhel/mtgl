@@ -7,6 +7,9 @@
     <Filter Include="include">
       <UniqueIdentifier>{db3fceff-4aa2-466e-a8e0-7919773c6997}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\GL">
+      <UniqueIdentifier>{2adac91a-7401-4ce2-9b28-01a55c569b06}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\mtgl.c">
@@ -46,6 +49,12 @@
     </ClInclude>
     <ClInclude Include="src\mtgl_ctx.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GL\glcorearb.h">
+      <Filter>src\GL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GL\wglext.h">
+      <Filter>src\GL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
