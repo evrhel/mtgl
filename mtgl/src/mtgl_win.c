@@ -378,7 +378,7 @@ int
 mtgl_get_joystick_state(mtglwin *win, int id, mtgljoystickstate *state)
 {
 	int result;
-	int rawstate;
+	mtglrawjoystickstate rawstate;
 
 	result = mtgl_get_joystick_raw_state(win, id, &rawstate);
 	if (result != mtgl_device_connected) return result;

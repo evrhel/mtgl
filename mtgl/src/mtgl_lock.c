@@ -95,7 +95,7 @@ mtgl_condition_create()
 	if (!condition) return 0;
 
 #if _WIN32
-	InitializeConditionVariable(condition);
+	InitializeConditionVariable(&condition->cv);
 #endif
 
 	return condition;
