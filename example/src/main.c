@@ -148,9 +148,22 @@ main(int argc, char *argv[])
 	args.allow_sampling = 1;
 	args.sample_count = 8;
 
-	/* create a window and OpenGL context */
+	/* create a window */
 	prog_ctx.win = mtgl_win_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
+	if (!prog_ctx.win)
+	{
+		fprintf(stderr, "Failed to create window\n");
+		return 1;
+	}
+
+	/* create OpenGL context from window */
 	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, &args);
+	if (!prog_ctx.ctx)
+	{
+		fprintf(stderr, "Failed to create OpenGL context\n");
+		mtgl_win_destroy(prog_ctx.win);
+		return 1;
+	}
 
 	mtgl_get_joystick_info(prog_ctx.win, mtgl_joystick1, &jsinfo);
 
@@ -242,10 +255,11 @@ main(int argc, char *argv[])
 
 #if _WIN32
 	CloseHandle(prog_ctx.hWorker);
+	prog_ctx.hWorker = 0;
 #elif __posix__ || __linux__ || __APPLE__
 	pthread_detach(prog_ctx.worker);
+	prog_ctx.worker = 0;
 #endif
-	prog_ctx.hWorker = 0;
 
 	/* cleanup OpenGL resources */
 	mtgl_ctx_acquire(prog_ctx.ctx);

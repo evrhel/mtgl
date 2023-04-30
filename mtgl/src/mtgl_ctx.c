@@ -2,10 +2,10 @@
 
 #if _WIN32
 #include "mtgl_ctx_win32.h"
+#include "GL/wglext.h"
 #endif
 
 #include "GL/glcorearb.h"
-#include "GL/wglext.h"
 
 void
 mtgl_ctx_get_default_init_args(mtglctxinitargs *args)
@@ -31,6 +31,8 @@ mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *arg
 {
 #if _WIN32
 	return (mtglctx *)mtgl_ctx_create_win32((struct mtglwin_win32 *)win, ver_major, ver_minor, argsp);
+#else
+	return 0;
 #endif
 }
 
@@ -39,6 +41,8 @@ mtgl_ctx_clone(mtglctx *ctx)
 {
 #if _WIN32
 	return (mtglctx *)mtgl_ctx_clone_win32((struct mtglctx_win32 *)ctx);
+#else
+	return 0;
 #endif
 }
 
@@ -55,6 +59,8 @@ mtgl_ctx_try_acquire(mtglctx *ctx)
 {
 #if _WIN32
 	mtgl_ctx_try_acquire_win32((struct mtglctx_win32 *)ctx);
+#else
+	return 0;
 #endif
 }
 
@@ -87,5 +93,7 @@ mtgl_ctx_get_proc(const char *name)
 {
 #if _WIN32
 	return mtgl_ctx_get_proc_win32(name);
+#else
+	return 0;
 #endif
 }

@@ -1,8 +1,9 @@
 #include <mtgl/mtgl.h>
 
+#if _WIN32
 #include <Windows.h>
 
-struct device_iterator
+struct device_iterator_win32
 {
 	int current_device;
 	int filter;
@@ -20,10 +21,12 @@ struct device_iterator
 	};
 };
 
+#endif
+
 static mtgllock *lock = 0;
 
 #define rnd(dt, filter) { *(filter) &= ~(dt); return (dt); }
-static inline enum mtgl_device_type
+static inline int
 next_device(int *filter)
 {
 	if (*filter & mtgl_device_type_graphics) rnd(mtgl_device_type_graphics, filter)
@@ -52,7 +55,8 @@ mtgl_get_lock()
 void *
 mtgl_enumerate_devices(void *it, mtgldevice *device, int filter)
 {
-	struct device_iterator *dit = it;
+#if _WIN32
+	struct device_iterator_win32 *dit = it;
 	DISPLAY_DEVICEA display_device;
 	BOOL bResult;
 	UINT uiResult;
@@ -68,7 +72,7 @@ mtgl_enumerate_devices(void *it, mtgldevice *device, int filter)
 
 	if (!dit)
 	{
-		dit = malloc(sizeof(struct device_iterator));
+		dit = malloc(sizeof(struct device_iterator_win32));
 		if (!dit) return 0;
 
 		dit->filter = filter;
@@ -190,12 +194,16 @@ mtgl_enumerate_devices(void *it, mtgldevice *device, int filter)
 	}
 
 	return dit;
+#else
+	return 0;
+#endif
 }
 
 void
 mtgl_enumerate_devices_done(void *it)
 {
-	struct device_iterator *dit = it;
+#if _WIN32
+	struct device_iterator_win32 *dit = it;
 
 	if (it)
 	{
@@ -204,6 +212,7 @@ mtgl_enumerate_devices_done(void *it)
 
 		free(it);
 	}
+#endif
 }
 /*int
 mtgl_get_joystick_count()

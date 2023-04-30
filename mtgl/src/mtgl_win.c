@@ -124,6 +124,8 @@ mtgl_win_create(const char *title, int width, int height, int flags, int device,
 {
 #if _WIN32
 	return mtgl_win_create_win32(title, width, height, flags, device, user_data);
+#else
+	return 0;
 #endif
 }
 
@@ -279,7 +281,7 @@ mtgl_get_mouse_pos(mtglwin *win, int *x, int *y)
 int
 mtgl_get_key(mtglwin *win, int key)
 {
-	enum glwin_key_state state;
+	int state;
 	if (key < 0 || key >= (sizeof(win->key_states) / sizeof(win->key_states[0])))
 		return -1;
 
@@ -321,6 +323,8 @@ mtgl_get_time(mtglwin *win)
 {
 #if _WIN32
 	return mtgl_get_time_win32(win);
+#else
+	return 0.0f;
 #endif
 }
 

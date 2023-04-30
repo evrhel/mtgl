@@ -1,22 +1,23 @@
 BIN := bin
-OBJ := gcc -O3 -I ../mtgl/include -I dependencies/include -g -O -c
-OBJ_DB := gcc -Og -I ../mtgl/include -I dependencies/include -g -O -c
+MTGL_BIN := ../mtgl/bin
+OBJ := gcc -O3 -I include -I dependencies/include -I ../mtgl/include -g -O -c
+OBJ_DB := gcc -Og -I include -I dependencies/include -I ../mtgl/include -g -O -c
 LNK := gcc -O3 -o
 LNK_DB := gcc -Og -o
 
 all: main.o shaders.o glad.o mtgl
 	mkdir -p $(BIN)
-	$(LNK) $(BIN)/example $(BIN)/main.o $(BIN)/shaders.o $(BIN)/mtgl.o $(BIN)/glad.o
+	$(LNK) $(BIN)/example $(BIN)/main.o $(BIN)/shaders.o $(BIN)/glad.o \
+		$(MTGL_BIN)/mtgl_ctx.o $(MTGL_BIN)/mtgl_lock.o $(MTGL_BIN)/mtgl_win.o $(MTGL_BIN)/mtgl.o 
 
 debug: main_db.o shaders_db.o mtgl_db dependencies_db
 	mkdir -p $(BIN)
-	$(LNK_DB) $(BIN)/example $(BIN)/main_db.o $(BIN)/shaders_db.o $(BIN)/mtgl_db.o $(BIN)/glad_db.o
+	$(LNK_DB) $(BIN)/example $(BIN)/main_db.o $(BIN)/shaders_db.o $(BIN)/glad_db.o \
+		$(MTGL_BIN)/mtgl_ctx_db.o $(MTGL_BIN)/mtgl_lock_db.o $(MTGL_BIN)/mtgl_win_db.o $(MTGL_BIN)/mtgl_db.o
 
-dependencies:
-	make -C ../dependencies
-
-dependencies_db:
-	make -C ../dependencies debug
+clean:
+	make -C ../mtgl clean
+	rm -rf $(BIN)
 
 mtgl:
 	make -C ../mtgl

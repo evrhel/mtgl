@@ -1,48 +1,37 @@
 BIN := bin
 OBJ := gcc -O3 -I include -I ../dependencies/include -I ../mtgl/include -g -O -c
 OBJ_DB := gcc -Og -I include -I ../dependencies/include -I ../mtgl/include -g -O -c
-LNK := gcc -O3 -o
-LNK_DB := gcc -Og -o
 
-all: glctx.o gllock.o glwin.o mtgl_input_private.o mtgl.o
-	mkdir -p $(BIN)
-	$(LNK) $(BIN)/mtgl $(BIN)/glctx.o $(BIN)/gllock.o $(BIN)/glwin.o $(BIN)/mtgl_input_private.o $(BIN)/mtgl.o
+all: mtgl_ctx.o mtgl_lock.o mtgl_win.o mtgl.o
 
-debug: glctx_db.o gllock_db.o glwin_db.o mtgl_input_private_db.o mtgl_db.o
-	mkdir -p $(BIN)
-	$(LNK_DB) $(BIN)/mtgl $(BIN)/glctx_db.o $(BIN)/gllock_db.o $(BIN)/glwin_db.o $(BIN)/mtgl_input_private_db.o $(BIN)/mtgl_db.o
+debug: mtgl_ctx_db.o mtgl_lock_db.o mtgl_win_db.o mtgl_db.o
 
-glctx.o:
-	mkdir -p $(BIN)
-	$(OBJ) -o $(BIN)/glctx.o src/glctx.c
+clean:
+	rm -rf $(BIN)
 
-glctx_db.o:
+mtgl_ctx.o:
 	mkdir -p $(BIN)
-	$(OBJ_DB) -o $(BIN)/glctx_db.o src/glctx.c
+	$(OBJ) -o $(BIN)/mtgl_ctx.o src/mtgl_ctx.c
 
-gllock.o:
+mtgl_ctx_db.o:
 	mkdir -p $(BIN)
-	$(OBJ) -o $(BIN)/gllock.o src/gllock.c
+	$(OBJ_DB) -o $(BIN)/mtgl_ctx_db.o src/mtgl_ctx.c
 
-gllock_db.o:
+mtgl_lock.o:
 	mkdir -p $(BIN)
-	$(OBJ_DB) -o $(BIN)/gllock_db.o src/gllock.c
+	$(OBJ) -o $(BIN)/mtgl_lock.o src/mtgl_lock.c
 
-glwin.o:
+mtgl_lock_db.o:
 	mkdir -p $(BIN)
-	$(OBJ) -o $(BIN)/glwin.o src/glwin.c
+	$(OBJ_DB) -o $(BIN)/mtgl_lock_db.o src/mtgl_lock.c
 
-glwin_db.o:
+mtgl_win.o:
 	mkdir -p $(BIN)
-	$(OBJ_DB) -o $(BIN)/glwin_db.o src/glwin.c
+	$(OBJ) -o $(BIN)/mtgl_win.o src/mtgl_win.c
 
-mtgl_input_private.o:
+mtgl_win_db.o:
 	mkdir -p $(BIN)
-	$(OBJ) -o $(BIN)/mtgl_input_private.o src/mtgl_input_private.c
-
-mtgl_input_private_db.o:
-	mkdir -p $(BIN)
-	$(OBJ_DB) -o $(BIN)/mtgl_input_private_db.o src/mtgl_input_private.c
+	$(OBJ_DB) -o $(BIN)/mtgl_win_db.o src/mtgl_win.c
 
 mtgl.o:
 	mkdir -p $(BIN)
