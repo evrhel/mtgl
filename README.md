@@ -12,18 +12,18 @@ threads.
 Below are a list of significant functions pertaining directly to
 OpenGL contexts, see `mtgl/include/mtgl.h` for all functions.
 
-* `glctx *mtgl_ctx_create(glwin *win, int ver_major, int ver_minor, mtglctxinitargs *argsp)` - 
+* `mtglctx *mtgl_ctx_create(glwin *win, int ver_major, int ver_minor, mtglctxinitargs *argsp)` - 
 Create an OpenGL context from a window with the OpenGL version
 `ver_major.ver_minor`. Can optionally specify additional context
 creation options through the `argsp` parameter. Can only be done
 once per window.
 
-* `glctx *mtgl_ctx_clone(glctx *ctx)` - Clones an OpenGL context. The
+* `mtglctx *mtgl_ctx_clone(mtglctx *ctx)` - Clones an OpenGL context. The
 new context will have all its resources shared with a context created
 from `mtgl_ctx_create` or `mtgl_ctx_clone`. The context must be cloned
 on the thread on which it was created.
 
-* `void mtgl_ctx_acquire(glctx *ctx)` - Acquires an OpenGL context so
+* `void mtgl_ctx_acquire(mtglctx *ctx)` - Acquires an OpenGL context so
 OpenGL calls can be subsequently made. This allows the same context
 to be passed around to different threads. The call will block until
 another thread calls `mtgl_ctx_release`. The call is reentrant,
@@ -31,7 +31,7 @@ meaning two calls to `mtgl_ctx_acquire` will not cause deadlock, but
 the number of calls to `mtgl_ctx_acquire` must match the number of
 calls to `mtgl_ctx_release`.
 
-* `void mtgl_ctx_release(glctx *ctx)` - Releases a context acquired
+* `void mtgl_ctx_release(mtglctx *ctx)` - Releases a context acquired
 from `mtgl_ctx_acquire` so another thread can use the context.
 
 Behavior of OpenGL calls outside the bounds of matching
