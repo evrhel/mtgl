@@ -110,14 +110,18 @@ while a triangle's loading time is being artificially slowed down.
 
 ### Building the Example Prorgam
 
-Run `autoconfig.sh` to fetch dependencies.
+Run `autoconf.sh` to fetch dependencies.
 
 #### Windows
 
 The program can be built from within Visual Studio 2019. Simply open
 `mtgl.sln` build and run the `example` project.
 
-#### Linux and Mac
+#### Mac
 
 From within the `example` directory, run `make`, then run the program
 using `./bin/example`.
+
+#### Linux
+
+No support yet!
