@@ -161,7 +161,7 @@ main(int argc, char *argv[])
 	}
 
 	/* create OpenGL context from window */
-	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, &args);
+	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, 0, &args);
 	if (!prog_ctx.ctx)
 	{
 		fprintf(stderr, "Failed to create OpenGL context\n");

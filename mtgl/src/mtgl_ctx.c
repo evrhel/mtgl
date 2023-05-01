@@ -34,13 +34,29 @@ mtgl_ctx_get_default_init_args(mtglctxinitargs *args)
 }
 
 mtglctx *
-mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *args)
+mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, int policy, mtglctxinitargs *args)
 {
 	mtglctx *ctx = 0;
 	mtgllock *statelock = 0;
 	mtglcondition *condition = 0;
 	mtglctxinitargs args2;
 
+	/* a window is required to make a context */
+	if (!win)
+		return 0;
+	
+	/* check if policy is valid */
+	switch (policy)
+	{
+	case mtgl_ctx_policy_default:
+	case mtgl_ctx_policy_use_scheduler:
+	case mtgl_ctx_policy_one_thread:
+		break;
+	default:
+		return 0;
+	}
+
+	/* fetch default context creation hints */
 	if (!args)
 	{
 		mtgl_ctx_get_default_init_args(&args2);
@@ -58,7 +74,10 @@ mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *arg
 #endif
 
 	if (ctx)
+	{
 		ctx->condition = condition;
+		ctx->policy = policy;
+	}
 
 	return ctx;
 }
@@ -132,6 +151,12 @@ mtgl_ctx_release(mtglctx *ctx)
 #endif
 
 	mtgl_lock_release(ctx->lock);
+}
+
+int
+mtgl_ctx_sched(mtglctx *ctx, int try_acquire)
+{
+	// TODO
 }
 
 void

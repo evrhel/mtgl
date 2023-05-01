@@ -17,4 +17,5 @@ struct mtglctx
 	int ver_major, ver_minor;
 	int profile;
 	int nesting;
+	int policy;
 };

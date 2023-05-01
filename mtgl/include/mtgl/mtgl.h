@@ -133,6 +133,82 @@ extern "C" {
 		mtgl_profile_compatability
 	};
 
+	// mtgl OpenGL context policy
+	enum mtglctxpolicy
+	{
+		// Default context policy, allows synchronization on the context. When
+		// the OpenGL context is needed, make a call to mtgl_ctx_acquire or
+		// mtgl_ctx_try_acquire. When done, call mtgl_ctx_release so others
+		// may use it.
+		mtgl_ctx_policy_default = 0,
+
+		// Use a context scheduler policy. The thread on which the context
+		// was created must continually call mtgl_ctx_sched. All other threads
+		// use the API as normal. This is more complex to implement, but should
+		// be used if the main thread is using the context for most of the time
+		// as with the default context policy, there may be a lot of the main
+		// thread releasing the context only to get it back immediately. Using
+		// this releases the context on the main thread only when needed.
+		mtgl_ctx_policy_use_scheduler,
+
+		// The context should not be thread-safe. Use when only one thread is
+		// going to use the OpenGL context. With this policy, no synchronization
+		// calls are needed, and the thread that created the context will
+		// always have control of the context.
+		mtgl_ctx_policy_one_thread
+	};
+
+	// Return result from mtgl_ctx_sched
+	enum mtglschedresult
+	{
+		// The OpenGL context has been acquired
+		mtgl_sched_ctx_acquired,
+
+		// The OpenGL context is in use
+		mtgl_sched_ctx_in_use,
+
+		// This thread is not allowed to call mtgl_ctx_sched
+		mtgl_sched_not_allowed,
+
+		// The function failed for any reason
+		mtgl_sched_failure
+	};
+
+	// Information on how a context should be acquired
+	enum mtglacquirebehavior
+	{
+		// Never acquire the context
+		mtgl_ctx_acquire_never,
+
+		// Always acquire the context
+		mtgl_ctx_acquire_always,
+
+		// Always acquire the context if it is avaliable
+		mtgl_ctx_acquire_if_avaliable,
+
+		// Sometimes acquire the context if it is avaliable
+		mtgl_ctx_acquire_sometimes
+	};
+
+	// Information about a context acquisition request
+	enum mtglacquireresult
+	{
+		// The context was acquired
+		mtgl_ctx_acquire_success,
+
+		// The context was not acquired
+		mtgl_ctx_acquire_fail,
+
+		// The context is in use
+		mtgl_ctx_acquire_busy,
+
+		// This thread is not allowed to acquire the context
+		mtgl_ctx_acquire_not_allowed,
+
+		// Any error occured while acquiring the context
+		mtgl_ctx_acquire_error
+	};
+
 	// Device info
 	struct mtgldevice
 	{
@@ -505,6 +581,7 @@ extern "C" {
 	// - win: The window to create the context for.
 	// - ver_major: The major version of OpenGL to create the context for.
 	// - ver_minor: The minor version of OpenGL to create the context for.
+	// - policy: The context policy. One of mtglctxpolicy. Pass 0 for default.
 	// - argsp: A pointer to a mtglctxinitargs struct to use to initialize the
 	// 			context. If NULL, the default init args will be used. The native
 	// 			window system is free to ignore any of the init args - these
@@ -513,7 +590,7 @@ extern "C" {
 	// Returns:
 	// A pointer to the OpenGL context, or NULL if the context could not be
 	// created.
-	mtglctx *mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, mtglctxinitargs *argsp);
+	mtglctx *mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, int policy, mtglctxinitargs *argsp);
 
 	// Create an OpenGL context that shares resources with another OpenGL context.
 	// The context must be destroyed with mtgl_ctx_destroy before the window is
@@ -560,6 +637,23 @@ extern "C" {
 	// Parameters:
 	// - ctx: The OpenGL context to release.
 	void mtgl_ctx_release(mtglctx *ctx);
+
+	// Run the context scheduler. Only used when a context is created with
+	// mtgl_ctx_policy_use_scheduler policy flag. Must be called from the thread
+	// which created the context and the context cannot be a context created from
+	// mtgl_ctx_clone. This function looks for any threads waiting on the OpenGL
+	// context and decides whether it should be allowed to have it. This call
+	// blocks if mtgl_ctx_acquire_always is passed to the acquisition parameter and
+	// the context is in use. This, however, is bad practice and defeats the purpose
+	// of the scheduler.
+	// 
+	// Parameters:
+	// - ctx: The OpenGL context to run the scheduler on.
+	// - acquisition: How the context should be acquired. One of mtglacquirebehavior.
+	// 
+	// Returns:
+	// One of mtglacquireresult describing the context acquisition.
+	int mtgl_ctx_sched(mtglctx *ctx, int acquisition);
 
 	// Set the swap interval for an OpenGL context.
 	//
