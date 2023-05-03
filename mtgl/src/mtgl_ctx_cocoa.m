@@ -202,45 +202,18 @@ struct mtglctx_cocoa *mtgl_ctx_clone_cocoa(struct mtglctx_cocoa *ctx)
 
 void mtgl_ctx_acquire_cocoa(struct mtglctx_cocoa *ctx)
 {
-    mtgl_lock_acquire(ctx->ctx.lock);
-    ctx->ctx.nesting++;
-    if (ctx->ctx.nesting == 1)
+    @autoreleasepool
     {
-        @autoreleasepool
-        {
-            [(NSOpenGLContext *)ctx->context makeCurrentContext];
-        }
+        [(NSOpenGLContext *)ctx->context makeCurrentContext];
     }
-}
-
-int mtgl_ctx_try_acquire_cocoa(struct mtglctx_cocoa *ctx)
-{
-    if (!mtgl_lock_try_acquire(ctx->ctx.lock))
-        return 0;
-
-    ctx->ctx.nesting++;
-    if (ctx->ctx.nesting == 1)
-    {
-        @autoreleasepool
-        {
-            [(NSOpenGLContext *)ctx->context makeCurrentContext];
-        }
-    }
-
-    return 1;
 }
 
 void mtgl_ctx_release_cocoa(struct mtglctx_cocoa *ctx)
 {
-    ctx->ctx.nesting--;
-    if (ctx->ctx.nesting == 0)
+    @autoreleasepool
     {
-        @autoreleasepool
-        {
-            [NSOpenGLContext clearCurrentContext];
-        }
+        [NSOpenGLContext clearCurrentContext];
     }
-    mtgl_lock_release(ctx->ctx.lock);
 }
 
 void mtgl_ctx_set_swap_interval_cocoa(struct mtglctx_cocoa *ctx, int interval)

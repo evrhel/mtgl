@@ -21,6 +21,12 @@ struct mtglcondition
 struct mtgllock
 {
 	pthread_mutex_t mutex;
+	pthread_mutexattr_t attr;
+};
+
+struct mtglcondition
+{
+	pthread_cond_t cond;
 };
 
 #endif
@@ -36,7 +42,25 @@ mtgl_lock_create()
 #if _WIN32
 	InitializeCriticalSection(&lock->cs);
 #elif __posix__ || __linux__ || __APPLE__
-	pthread_mutex_init(&lock->mutex, 0);
+	if (pthread_mutexattr_init(&lock->attr))
+	{
+		free(lock);
+		return 0;
+	}
+
+	if (pthread_mutexattr_settype(&lock->attr, PTHREAD_MUTEX_RECURSIVE))
+	{
+		pthread_mutexattr_destroy(&lock->attr);
+		free(lock);
+		return 0;
+	}
+
+	if (pthread_mutex_init(&lock->mutex, 0))
+	{
+		pthread_mutexattr_destroy(&lock->attr);
+		free(lock);
+		return 0;
+	}
 #endif
 	return lock;
 }
@@ -79,6 +103,7 @@ mtgl_lock_destroy(mtgllock *lock)
 #if _WIN32
 		DeleteCriticalSection(&lock->cs);
 #elif __posix__ || __linux__ || __APPLE__
+		pthread_mutexattr_destroy(&lock->attr);
 		pthread_mutex_destroy(&lock->mutex);
 #endif
 
@@ -96,6 +121,12 @@ mtgl_condition_create()
 
 #if _WIN32
 	InitializeConditionVariable(&condition->cv);
+#elif __posix__ || __linux__ || __APPLE__
+	if (pthread_cond_init(&condition->cond, 0))
+	{
+		free(condition);
+		return 0;
+	}
 #endif
 
 	return condition;
@@ -104,6 +135,9 @@ mtgl_condition_create()
 void
 mtgl_condition_destroy(mtglcondition *condition)
 {
+#if __posix__ || __linux__ || __APPLE__
+	pthread_cond_destroy(&condition->cond);
+#endif
 	free(condition);
 }
 
@@ -112,6 +146,8 @@ mtgl_condition_wait(mtglcondition *condition, mtgllock *lock)
 {
 #if _WIN32
 	SleepConditionVariableCS(&condition->cv, &lock->cs, INFINITE);
+#elif __posix__ || __linux__ || __APPLE__
+	pthread_cond_wait(&condition->cond, &lock->mutex);
 #endif
 }
 
@@ -120,6 +156,8 @@ mtgl_condition_signal(mtglcondition *condition)
 {
 #if _WIN32
 	WakeConditionVariable(&condition->cv);
+#elif __posix__ || __linux__ || __APPLE__
+	pthread_cond_signal(&condition->cond);
 #endif
 }
 
@@ -128,5 +166,7 @@ mtgl_condition_signal_all(mtglcondition *condition)
 {
 #if _WIN32
 	WakeAllConditionVariable(&condition->cv);
+#elif __posix__ || __linux__ || __APPLE__
+	pthread_cond_broadcast(&condition->cond);
 #endif
 }

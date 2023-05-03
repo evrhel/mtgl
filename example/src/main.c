@@ -159,6 +159,8 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Failed to create window\n");
 		return 1;
 	}
+	
+	printf("window created\n");
 
 	/* create OpenGL context from window */
 	prog_ctx.ctx = mtgl_ctx_create(prog_ctx.win, 3, 3, 0, &args);
@@ -169,16 +171,22 @@ main(int argc, char *argv[])
 		return 1;
 	}
 
+	printf("context created\n");
+
 	mtgl_get_joystick_info(prog_ctx.win, mtgl_joystick1, &jsinfo);
 
 	mtgl_set_event_callback(prog_ctx.win, mtgl_event_resize, window_resized);
 	mtgl_set_event_callback(prog_ctx.win, mtgl_event_char, char_callback);
+
+	printf("callbacks set\n");
 
 	mtgl_ctx_set_swap_interval(prog_ctx.ctx, 1); // enable vsync
 
 	mtgl_ctx_acquire(prog_ctx.ctx);
 
 	gladLoadGLLoader(mtgl_ctx_get_proc); // load OpenGL functions
+
+	printf("OpenGL functions loaded\n");
 
 	/* Print OpenGL info */
 	printf("OpenGL:  %s\n", glGetString(GL_VERSION));
@@ -188,6 +196,8 @@ main(int argc, char *argv[])
 	glEnable(GL_MULTISAMPLE);
 
 	mtgl_ctx_release(prog_ctx.ctx);
+
+	printf("done opengl setup\n");
 
 	/* create a worker thread to load OpenGL resources */
 #if _WIN32
@@ -206,6 +216,8 @@ main(int argc, char *argv[])
 	mtgl_show_window(prog_ctx.win, 1); // show the window
 
 	start = mtgl_get_time(prog_ctx.win);
+
+	printf("main loop\n");
 
 	/* loop until the window should close */
 	while (!mtgl_should_close(prog_ctx.win))

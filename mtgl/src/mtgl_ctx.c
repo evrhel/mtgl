@@ -130,7 +130,7 @@ mtgl_ctx_try_acquire(mtglctx *ctx)
 #if _WIN32
 		mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-		mtgl_ctx_try_acquire_cocoa((struct mtglctx_cocoa *)ctx);
+		mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #else
 		return 0;
 #endif
@@ -157,6 +157,7 @@ int
 mtgl_ctx_sched(mtglctx *ctx, int try_acquire)
 {
 	// TODO
+	return 0;
 }
 
 void
