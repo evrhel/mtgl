@@ -288,7 +288,7 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	/* non-client area created */
 	case WM_NCCREATE: {
 		//SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG)((LPCREATESTRUCTA)lParam)->lpCreateParams);
-		return TRUE;
+		break;
 	}
 
 	/* client area created */
@@ -300,7 +300,7 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		win->y = lpCreateStruct->y;
 		win->width = lpCreateStruct->cx;
 		win->height = lpCreateStruct->cy;
-		return 0;
+		break;
 	}
 
 	/* window closing */

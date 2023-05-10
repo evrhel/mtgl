@@ -77,6 +77,15 @@ mtgl_ctx_create(mtglwin *win, int ver_major, int ver_minor, int policy, mtglctxi
 	{
 		ctx->condition = condition;
 		ctx->policy = policy;
+	
+		if (ctx->policy == mtgl_ctx_policy_one_thread)
+		{
+#if _WIN32
+			mtgl_ctx_acquire_win32(ctx);
+#elif __APPLE__
+			
+#endif
+		}
 	}
 
 	return ctx;
@@ -98,8 +107,20 @@ mtgl_ctx_clone(mtglctx *ctx)
 	nctx = (mtglctx *)mtgl_ctx_clone_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
 
-	if (ctx)
+	if (nctx)
+	{
 		nctx->condition = condition;
+		nctx->policy = ctx->policy;
+
+		if (nctx->policy == mtgl_ctx_policy_one_thread)
+		{
+#if _WIN32
+			mtgl_ctx_acquire_win32(nctx);
+#elif __APPLE__
+
+#endif
+		}
+	}
 
 	return nctx;
 }
@@ -107,33 +128,48 @@ mtgl_ctx_clone(mtglctx *ctx)
 void
 mtgl_ctx_acquire(mtglctx *ctx)
 {
-	mtgl_lock_acquire(ctx->lock);
-	ctx->nesting++;
-	if (ctx->nesting == 1)
+	switch (ctx->policy)
+	{
+	case mtgl_ctx_policy_default:
+		mtgl_lock_acquire(ctx->lock);
+		ctx->nesting++;
+		if (ctx->nesting == 1)
 #if _WIN32
-		mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
+			mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-		mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
+			mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
+		break;
+	case mtgl_ctx_policy_one_thread:
+		break;
+	}
 }
 
 int
 mtgl_ctx_try_acquire(mtglctx *ctx)
 {
-	int r = mtgl_lock_try_acquire(ctx->lock);
-	if (!r) return 0;
+	int r;
+	switch (ctx->policy)
+	{
+	case mtgl_ctx_policy_default:
+		r = mtgl_lock_try_acquire(ctx->lock);
+		if (!r) return 0;
 
-	/* lock acquired */
+		/* lock acquired */
 
-	ctx->nesting++;
-	if (ctx->nesting == 1)
+		ctx->nesting++;
+		if (ctx->nesting == 1)
 #if _WIN32
-		mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
+			mtgl_ctx_acquire_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
 		mtgl_ctx_acquire_cocoa((struct mtglctx_cocoa *)ctx);
 #else
-		return 0;
+			return 0;
 #endif
+		break;
+	case mtgl_ctx_policy_one_thread:
+		return 1;
+	}
 
 	return 1;
 }
@@ -141,16 +177,23 @@ mtgl_ctx_try_acquire(mtglctx *ctx)
 void
 mtgl_ctx_release(mtglctx *ctx)
 {
-	ctx->nesting--;
+	switch (ctx->policy)
+	{
+	case mtgl_ctx_policy_default:
+		ctx->nesting--;
 
-	if (ctx->nesting == 0)
+		if (ctx->nesting == 0)
 #if _WIN32
-		mtgl_ctx_release_win32((struct mtglctx_win32 *)ctx);
+			mtgl_ctx_release_win32((struct mtglctx_win32 *)ctx);
 #elif __APPLE__
-		mtgl_ctx_release_cocoa((struct mtglctx_cocoa *)ctx);
+			mtgl_ctx_release_cocoa((struct mtglctx_cocoa *)ctx);
 #endif
 
-	mtgl_lock_release(ctx->lock);
+		mtgl_lock_release(ctx->lock);
+		break;
+	case mtgl_ctx_policy_one_thread:
+		break;
+	}
 }
 
 int
