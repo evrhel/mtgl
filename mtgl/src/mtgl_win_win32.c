@@ -4,6 +4,7 @@
 #include "mtgl_input_private.h"
 
 #include <assert.h>
+#include <windowsx.h>
 
 static const char win_class_name[] = "glwin";
 static int win_class_refs = 0;
@@ -44,16 +45,16 @@ handle_input_device_event_win32(struct mtglwin_win32 *win, HANDLE hDevice, enum 
 		&di, &cbSize);
 	if (uiResult == -1) return;
 
-
+	/* switch on device type */
 	switch (di.dwType)
 	{
-	case RIM_TYPEMOUSE:
+	case RIM_TYPEMOUSE: // mouse
 		type = mtgl_device_type_mouse;
 		break;
-	case RIM_TYPEKEYBOARD:
+	case RIM_TYPEKEYBOARD: // keyboard
 		type = mtgl_device_type_keyboard;
 		break;
-	case RIM_TYPEHID: {
+	case RIM_TYPEHID: // joystick
 		type = mtgl_device_type_joystick;
 
 		ppd = win->ppd;
@@ -81,12 +82,10 @@ handle_input_device_event_win32(struct mtglwin_win32 *win, HANDLE hDevice, enum 
 
 		break;
 	}
-	}
 
 	if (type == mtgl_device_type_none) return;
 
 	win->win.callbacks[mtgl_event_device_event].on_device_event(&win->win, type, state, id);
-
 }
 
 static int
@@ -105,7 +104,10 @@ handle_raw_input_win32(struct mtglwin_win32 *win, DWORD dwCode, HRAWINPUT hRawIn
 	switch (raw->header.dwType)
 	{
 	/* mouse input */
-	case RIM_TYPEMOUSE: {
+	case RIM_TYPEMOUSE:
+		if (!(win->win.flags & mtgl_wf_raw_mouse_input))
+			break;
+
 		rm = &raw->data.mouse;
 
 		if (rm->lLastX || rm->lLastY)
@@ -126,10 +128,12 @@ handle_raw_input_win32(struct mtglwin_win32 *win, DWORD dwCode, HRAWINPUT hRawIn
 		}
 
 		break;
-	}
 
 	/* keyboard input */
 	case RIM_TYPEKEYBOARD: {
+		if (!(win->win.flags & mtgl_wf_raw_keyboard_input))
+			break;
+
 		rk = &raw->data.keyboard;
 		vk = map_vk_win32(rk->VKey, rk->MakeCode, rk->Flags);
 
@@ -162,6 +166,8 @@ handle_raw_input_win32(struct mtglwin_win32 *win, DWORD dwCode, HRAWINPUT hRawIn
 
 	/* joystick input */
 	case RIM_TYPEHID: {
+		if (!(win->win.flags & mtgl_wf_raw_joystick_input))
+			break;
 		break;
 	}
 	}
@@ -243,31 +249,70 @@ glwin_handle_input_message_win32(struct mtglwin_win32 *win, HWND hwnd, UINT uMsg
 
 	switch (uMsg)
 	{
-		/* raw input */
-	case WM_INPUT: return handle_raw_input_win32(win, GET_RAWINPUT_CODE_WPARAM(wParam), (HRAWINPUT)lParam);
-	case WM_INPUT_DEVICE_CHANGE: return handle_raw_input_device_change_win32(win, wParam, (HANDLE)lParam);
+	/* raw input */
+	case WM_INPUT:
+		handle_raw_input_win32(win, GET_RAWINPUT_CODE_WPARAM(wParam), (HRAWINPUT)lParam);
+		break;
+	case WM_INPUT_DEVICE_CHANGE:
+		handle_raw_input_device_change_win32(win, wParam, (HANDLE)lParam);
+		break;
 
-		/* keyboard (typing) input */
-	case WM_CHAR: {
+	/* keyboard (typing) input */
+	case WM_CHAR:
 		event.type = mtgl_event_char;
 		event.data.char_.code = (UINT)wParam;
 		event.data.char_.repeat_count = (int)(0x0f & lParam);
 		event.data.char_.mods = 0;
 		mtgl_push_event(&win->win, &event);
-		return 0;
-	}
+		break;
 
-				/* normal keyboard input */
+	/* normal keyboard input */
+	case WM_KEYDOWN:
+		if (!(win->win.flags & mtgl_wf_raw_keyboard_input))
+		{
+			event.type = mtgl_event_key;
+			event.data.key.action = mtgl_pressed;
+			event.data.key.key = wParam;
+			event.data.key.mods = 0;
+			mtgl_push_event(&win->win, &event);
+		}
+		break;
 	case WM_KEYUP:
+		if (!(win->win.flags & mtgl_wf_raw_keyboard_input))
+		{
+			event.type = mtgl_event_key;
+			event.data.key.action = mtgl_released;
+			event.data.key.key = wParam;
+			event.data.key.mods = 0;
+			mtgl_push_event(&win->win, &event);
+		}
+		break;
+
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
 	case WM_SYSCHAR:
-		return 0;
+		return 0; // ignore system keys
 
-		/* normal mouse input */
+	/* normal mouse input */
 	case WM_MOUSEMOVE:
+		if (!(win->win.flags & mtgl_wf_raw_mouse_input))
+		{
+			event.type = mtgl_event_mouse_move;
+			event.data.mouse_move.old_mx = win->win.mx;
+			event.data.mouse_move.old_my = win->win.my;
+
+			win->win.mx = GET_X_LPARAM(lParam);
+			win->win.my = GET_Y_LPARAM(lParam);
+
+			mtgl_push_event(&win->win, &event);
+		}
+		break;
 	case WM_MOUSEWHEEL:
-		return 0;
+		if (!(win->win.flags & mtgl_wf_raw_mouse_input))
+		{
+			// TODO: handle mouse wheel
+		}
+		break;
 	}
 
 	return DefWindowProcA(hwnd, uMsg, wParam, lParam);
@@ -286,13 +331,11 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	/* non-client area created */
-	case WM_NCCREATE: {
-		//SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG)((LPCREATESTRUCTA)lParam)->lpCreateParams);
+	case WM_NCCREATE: 
 		break;
-	}
 
 	/* client area created */
-	case WM_CREATE: {
+	case WM_CREATE:
 		lpCreateStruct = (LPCREATESTRUCTA)lParam;
 		win = lpCreateStruct->lpCreateParams;
 		SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR)win);
@@ -301,11 +344,10 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		win->width = lpCreateStruct->cx;
 		win->height = lpCreateStruct->cy;
 		break;
-	}
 
 	/* window closing */
 	case WM_CLOSE:
-	case WM_QUIT: {
+	case WM_QUIT:
 		win->should_close = 1;
 
 		event.type = mtgl_event_window_event;
@@ -314,22 +356,18 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		event.data.window_event.param2 = 0;
 		mtgl_push_event(win, &event);
 		return 0;
-	}
 
 	/* window moved */
-	case WM_MOVE: {
-
+	case WM_MOVE:
 		event.type = mtgl_event_window_event;
 		event.data.window_event.event = mtgl_window_move;
 		event.data.window_event.param1 = LOWORD(lParam);
 		event.data.window_event.param2 = HIWORD(lParam);
 		mtgl_push_event(win, &event);
-
-		return 0;
-	}
+		break;
 
 	/* window resized */
-	case WM_SIZE: {
+	case WM_SIZE:
 		win->was_resized = 1;
 
 		// resize event
@@ -362,11 +400,10 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			mtgl_push_event(win, &event);
 		}
 
-		return 0;
-	}
+		break;
 
 	/* window gained focused */
-	case WM_SETFOCUS: {
+	case WM_SETFOCUS:
 		win->focused = 1;
 
 		event.type = mtgl_event_window_event;
@@ -374,11 +411,10 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		event.data.window_event.param1 = 1;
 		event.data.window_event.param2 = 0;
 		mtgl_push_event(win, &event);
-		return 0;
-	}
+		break;
 
 	/* window lost focus */
-	case WM_KILLFOCUS: {
+	case WM_KILLFOCUS:
 		win->focused = 0;
 
 		event.type = mtgl_event_window_event;
@@ -386,8 +422,7 @@ mtgl_win_proc_win32(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		event.data.window_event.param1 = 0;
 		event.data.window_event.param2 = 0;
 		mtgl_push_event(win, &event);
-		return 0;
-	}
+		break;
 
 	/* input events */
 	case WM_CHAR:
@@ -491,7 +526,7 @@ mtgl_win_create_win32(const char *title, int width, int height, int flags, int d
 	{
 		winw32->rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
 		winw32->rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-		winw32->rid[0].dwFlags = RIDEV_NOLEGACY;
+		winw32->rid[0].dwFlags = 0;// RIDEV_NOLEGACY; using this causes window to freeze
 		winw32->rid[0].hwndTarget = winw32->hwnd;
 
 		if (!RegisterRawInputDevices(&winw32->rid[0], 1, sizeof(winw32->rid[0])))
@@ -502,7 +537,7 @@ mtgl_win_create_win32(const char *title, int width, int height, int flags, int d
 	{
 		winw32->rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
 		winw32->rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-		winw32->rid[1].dwFlags = RIDEV_NOLEGACY;
+		winw32->rid[1].dwFlags = 0;// RIDEV_NOLEGACY; using this causes window to freeze
 		winw32->rid[1].hwndTarget = winw32->hwnd;
 
 		if (!RegisterRawInputDevices(&winw32->rid[1], 1, sizeof(winw32->rid[1])))
