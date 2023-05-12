@@ -1,8 +1,18 @@
 BIN := bin
-OBJ := gcc -O3 -D GL_SILENCE_DEPRECATION -I include -I dependencies/include -I ../mtgl/include -g -O -c
-OBJ_DB := gcc -Og -D GL_SILENCE_DEPRECATION -I include -I dependencies/include -I ../mtgl/include -g -O -c
-LNK := gcc -framework Cocoa -framework OpenGL -O3 -o
-LNK_DB := gcc -framework Cocoa -framework OpenGL -Og -o
+
+ifeq ($(OS),Windows_NT)
+	$(error Do not use make to build on Windows)
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		OBJ := gcc -O3 -D GL_SILENCE_DEPRECATION -I include -I dependencies/include -I ../mtgl/include -g -O -c
+		OBJ_DB := gcc -Og -D GL_SILENCE_DEPRECATION -I include -I dependencies/include -I ../mtgl/include -g -O -c
+		LNK := gcc -framework Cocoa -framework OpenGL -O3 -o
+		LNK_DB := gcc -framework Cocoa -framework OpenGL -Og -o
+	else
+		$(error Unsupported platform)
+	endif
+endif
 
 all: main.o shaders.o glad.o mtgl_ctx.o mtgl_lock.o mtgl_win.o mtgl.o mtgl_win_cocoa.o mtgl_ctx_cocoa.o
 	mkdir -p $(BIN)
