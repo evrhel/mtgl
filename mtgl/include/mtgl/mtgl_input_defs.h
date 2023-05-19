@@ -122,7 +122,12 @@ extern "C" {
 		// window has been gained or lost focus
 		// param1 = 0 if focus was lost, 1 if focus was gained
 		// param2 = 0
-		mtgl_window_changefocus
+		mtgl_window_changefocus,
+
+		// window is being shown or hidden
+		// param1 = nonzero if the window is being shown and 0 if being hidden
+		// param2 = 0
+		mtgl_window_showing
 	};
 
 	// key and mouse button states

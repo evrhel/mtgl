@@ -246,6 +246,7 @@ static LRESULT
 glwin_handle_input_message_win32(struct mtglwin_win32 *win, HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	struct event event;
+	RECT rc;
 
 	switch (uMsg)
 	{
@@ -312,6 +313,18 @@ glwin_handle_input_message_win32(struct mtglwin_win32 *win, HWND hwnd, UINT uMsg
 		{
 			// TODO: handle mouse wheel
 		}
+		break;
+	case WM_SHOWWINDOW:
+		GetWindowRect(win->hwnd, &rc);
+		win->win.x = rc.left;
+		win->win.y = rc.top;
+
+		event.type = mtgl_event_window_event;
+		event.data.window_event.event = mtgl_window_showing;
+		event.data.window_event.param2 = 0;
+		event.data.window_event.param1 = !!wParam;
+
+		mtgl_push_event(&win->win, &event);
 		break;
 	}
 
@@ -570,24 +583,13 @@ failure:
 void
 mtgl_set_title_win32(struct mtglwin_win32 *win, const char *title)
 {
-	mtgl_lock_acquire(win->win.lock);
 	SetWindowTextA(win->hwnd, title);
-	mtgl_lock_release(win->win.lock);
 }
 
 void
 mtgl_show_window_win32(struct mtglwin_win32 *win, int shown)
 {
-	RECT rc;
-
-	mtgl_lock_acquire(win->win.lock);
 	ShowWindow(win->hwnd, shown ? SW_SHOW : SW_HIDE);
-
-	GetWindowRect(win->hwnd, &rc);
-	win->win.x = rc.left;
-	win->win.y = rc.top;
-
-	mtgl_lock_release(win->win.lock);
 }
 
 void
@@ -638,10 +640,7 @@ void
 mtgl_get_full_size_win32(struct mtglwin_win32 *win, int *width, int *height)
 {
 	RECT rc;
-
-	mtgl_lock_acquire(win->win.lock);
 	GetWindowRect(win->hwnd, &rc);
-	mtgl_lock_release(win->win.lock);
 
 	*width = rc.right - rc.left;
 	*height = rc.bottom - rc.top;
@@ -650,17 +649,13 @@ mtgl_get_full_size_win32(struct mtglwin_win32 *win, int *width, int *height)
 void
 mtgl_set_size_win32(struct mtglwin_win32 *win, int width, int height)
 {
-	mtgl_lock_acquire(win->win.lock);
 	SetWindowPos(win->hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOOWNERZORDER);
-	mtgl_lock_release(win->win.lock);
 }
 
 void
 mtgl_set_pos_win32(struct mtglwin_win32 *win, int x, int y)
 {
-	mtgl_lock_acquire(win->win.lock);
 	SetWindowPos(win->hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOOWNERZORDER);
-	mtgl_lock_release(win->win.lock);
 }
 
 float
