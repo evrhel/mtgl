@@ -4,6 +4,8 @@
 #include "mtgl_win_win32.h"
 #elif __APPLE__
 #include "mtgl_win_cocoa.h"
+#elif __linux__
+#include "mtgl_win_x11.h"
 #endif
 
 #include <assert.h>
@@ -128,6 +130,8 @@ mtgl_win_create(const char *title, int width, int height, int flags, int device,
 	return &mtgl_win_create_win32(title, width, height, flags, device, user_data)->win;
 #elif __APPLE__
 	return &mtgl_win_create_cocoa(title, width, height, flags, device, user_data)->win;
+#elif __linux__
+	return &mtgl_win_create_x11(title, width, height, flags, device, user_data)->win;
 #else
 	return 0;
 #endif
