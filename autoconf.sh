@@ -42,4 +42,6 @@ if [[ "$OSTYPE" == "msys"* ]]; then
 
     # wglext.h
     curl https://registry.khronos.org/OpenGL/api/GL/wglext.h --output GL/wglext.h
+elif [[ "$OSTYPE" == "linux"* ]]; then
+    # linux specific
 fi
