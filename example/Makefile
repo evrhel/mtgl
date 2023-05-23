@@ -12,8 +12,8 @@ else
 	else ifeq ($(UNAME_S),Linux)
 		OBJ := gcc -O3 -I include -I dependencies/include -I ../mtgl/include -g -O -c
 		OBJ_DB := gcc -Og -I include -I dependencies/include -I ../mtgl/include -g -O -c
-		LNK := gcc -O3 -lm -o
-		LNK_DB := gcc -Og -lm -o
+		LNK := gcc -O3 -lm -lX11 -o
+		LNK_DB := gcc -Og -lm -lX11 -o
 	endif
 endif
 
