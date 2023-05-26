@@ -20,6 +20,7 @@ extern "C"
         
         Display *d; // X11 display
         Window w; // X11 window
+        Colormap; // X11 colormap
         int s; // X11 screen
     };
 

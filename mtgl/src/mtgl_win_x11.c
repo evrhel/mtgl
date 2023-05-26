@@ -19,18 +19,26 @@ struct mtglwin_x11 *mtgl_win_create_x11(const char *title, int width, int height
     if (!winx11->d)
         goto failure;
 
-    winx11->s = DefaultScreen(d);
-    winx11->w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 100, 100, 1, BlackPixel(d, s), WhitePixel(d, s));
-    XSelectInput(d, w, ExposureMask | KeyPressMask);
-    XMapWindow(d, w);
+    winx11->s = DefaultScreen(winx11->d);
+    winx11->w = XCreateSimpleWindow(
+        winx11->d,
+        RootWindow(winx11->d, winx11->s),
+        10, 10,
+        100, 100,
+        1,
+        BlackPixel(winx11->d, winx11->s),
+        WhitePixel(winx11->d, winx11->s));
+   
+    XSelectInput(winx11->d, winx11->w, ExposureMask | KeyPressMask);
+    XMapWindow(winx11->d, winx11->w);
 
     return winx11;
 failure:
 
-    if (w)
+    if (winx11->w)
     {
         XUnmapWindow(winx11->d, winx11->w);
-        XDestroyWindow(winx11->w);
+        XDestroyWindow(winx11->d, winx11->w);
     }
 
     if (winx11->d)
