@@ -11,6 +11,75 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <memory.h>
+
+// vertices of a cube with position and normals
+const GLfloat cube_vertices[] = {
+    // Positions           // Normals
+    // Front face
+    -0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,
+     0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,
+     0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,
+    -0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,
+    
+    // Back face
+    -0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,
+    
+    // Left face
+    -0.5f, -0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,
+    
+    // Right face
+     0.5f, -0.5f, -0.5f,    1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,    1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,    1.0f,  0.0f,  0.0f,
+    
+    // Top face
+    -0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,
+     0.5f,   0.5f,  0.5f,    0.0f,  1.0f,  0.0f,
+     0.5f,   0.5f, -0.5f,    0.0f,  1.0f,  0.0f,
+    -0.5f,   0.5f, -0.5f,    0.0f,  1.0f,  0.0f,
+    
+    // Bottom face
+    -0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f
+};
+
+// indices of the cube triangles
+const GLuint cube_indices[] = {
+    // Front face
+    0, 1, 2,
+    2, 3, 0,
+    
+    // Back face
+    6, 5, 4,
+    4, 7, 6,
+    
+    // Left face
+    8, 9, 10,
+    10, 11, 8,
+    
+    // Right face
+    14, 13, 12,
+    12, 15, 14,
+    
+    // Top face
+    16, 17, 18,
+    18, 19, 16,
+    
+    // Bottom face
+    22, 21, 20,
+    20, 23, 22
+};
+
 
 struct ctx
 {
@@ -20,13 +89,20 @@ struct ctx
 	struct
 	{
 		GLuint screen;
-		GLint screen_color_unif;
+		GLint time_unif;
+		GLint model_unif;
+		GLint view_unif;
+		GLint proj_unif;
+		GLint cam_pos_unif;
+		GLint ambient_color_unif;
+		GLint color_unif;
 	} programs;
 
 	struct
 	{
-		GLuint tri_vao;
-		GLuint tri_vbo;
+		GLuint cube_vao;
+		GLuint cube_vbo;
+		GLuint cube_ebo;
 	} objects;
 
 #if _WIN32
@@ -45,10 +121,15 @@ static int loader_worker(struct ctx *prog_ctx);
 static void *loader_worker(void *ptr);
 #endif
 
+int viewport_width = 800, viewport_height = 600;
+
 static void
 window_resized(mtglwin *win, int width, int height)
 {
 	struct ctx *ctx = mtgl_get_user_data(win);
+
+	viewport_width = width;
+	viewport_height = height;
 
 	mtgl_ctx_acquire(ctx->ctx);
 	glViewport(0, 0, width, height);
@@ -113,6 +194,192 @@ device_type_string(enum mtgl_device_type type)
 	}
 }
 
+static void
+print_matrix(const char *name, const GLfloat *m)
+{
+	int i, j;
+
+	printf("%s:\n", name);
+
+	for (i = 0; i < 4; i++)
+	{
+		printf("| ");
+		for (j = 0; j < 4; j++)
+			printf("%.2f ", (double)m[i * 4 + j]);
+		printf("|\n");
+	}
+}
+
+static GLfloat *
+mmul(const GLfloat *a, const GLfloat *b, GLfloat *out)
+{
+	GLfloat tmp[16];
+
+	tmp[0] = a[0] * b[0] + a[4] * b[1] + a[8]  * b[2] + a[12] * b[3];
+	tmp[1] = a[1] * b[0] + a[5] * b[1] + a[9]  * b[2] + a[13] * b[3];
+	tmp[2] = a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3];
+	tmp[3] = a[3] * b[0] + a[7] * b[1] + a[11] * b[2] + a[15] * b[3];
+
+	tmp[4] = a[0] * b[4] + a[4] * b[5] + a[8]  * b[6] + a[12] * b[7];
+	tmp[5] = a[1] * b[4] + a[5] * b[5] + a[9]  * b[6] + a[13] * b[7];
+	tmp[6] = a[2] * b[4] + a[6] * b[5] + a[10] * b[6] + a[14] * b[7];
+	tmp[7] = a[3] * b[4] + a[7] * b[5] + a[11] * b[6] + a[15] * b[7];
+
+	tmp[8]  = a[0] * b[8] + a[4] * b[9] + a[8]  * b[10] + a[12] * b[11];
+	tmp[9]  = a[1] * b[8] + a[5] * b[9] + a[9]  * b[10] + a[13] * b[11];
+	tmp[10] = a[2] * b[8] + a[6] * b[9] + a[10] * b[10] + a[14] * b[11];
+	tmp[11] = a[3] * b[8] + a[7] * b[9] + a[11] * b[10] + a[15] * b[11];
+
+	tmp[12] = a[0] * b[12] + a[4] * b[13] + a[8]  * b[14] + a[12] * b[15];
+	tmp[13] = a[1] * b[12] + a[5] * b[13] + a[9]  * b[14] + a[13] * b[15];
+	tmp[14] = a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14] * b[15];
+	tmp[15] = a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15];
+
+	memcpy(out, tmp, sizeof(GLfloat) * 16);
+
+	return out;
+}
+
+static GLfloat *
+ident(GLfloat *out)
+{
+	GLfloat tmp[16] = {
+		1.0f, 0.0f, 0.0f, 0.0f, 
+		0.0f, 1.0f, 0.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	memcpy(out, tmp, sizeof(GLfloat) * 16);
+
+	return out;
+}
+
+static GLfloat *
+translate(const GLfloat *m, const GLfloat *pos, GLfloat *out)
+{
+	memcpy(out, m, sizeof(GLfloat) * 16);
+	out[12] += pos[0];
+	out[13] += pos[1];
+	out[14] += pos[2];
+
+	return out;
+}
+
+static GLfloat *
+rotate(const GLfloat *m, const GLfloat *axis, float deg, GLfloat *out)
+{
+	float rad = deg * (float)M_PI / 180.0f;
+
+	GLfloat tmp[16] = {
+		axis[0] * axis[0] * (1.0f - cosf(rad)) + cosf(rad),
+		axis[0] * axis[1] * (1.0f - cosf(rad)) - axis[2] * sinf(rad),
+		axis[0] * axis[2] * (1.0f - cosf(rad)) + axis[1] * sinf(rad),
+		0.0f,
+		axis[1] * axis[0] * (1.0f - cosf(rad)) + axis[2] * sinf(rad),
+		axis[1] * axis[1] * (1.0f - cosf(rad)) + cosf(rad),
+		axis[1] * axis[2] * (1.0f - cosf(rad)) - axis[0] * sinf(rad),
+		0.0f,
+		axis[2] * axis[0] * (1.0f - cosf(rad)) - axis[1] * sinf(rad),
+		axis[2] * axis[1] * (1.0f - cosf(rad)) + axis[0] * sinf(rad),
+		axis[2] * axis[2] * (1.0f - cosf(rad)) + cosf(rad),
+		0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	return mmul(m, tmp, out);
+}
+
+static GLfloat *
+scale(const GLfloat *m, const GLfloat *scl, GLfloat *out)
+{
+	GLfloat tmp[16] = {
+		scl[0], 0.0f, 0.0f, 0.0f,
+		0.0f, scl[1], 0.0f, 0.0f,
+		0.0f, 0.0f, scl[2], 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	return mmul(m, tmp, out);
+}
+
+static GLfloat *
+make_model(struct ctx *prog_ctx, GLfloat *model, const GLfloat *pos, const GLfloat *rot, const GLfloat *scl)
+{
+	const GLfloat x_axis[] = { 1.0f, 0.0f, 0.0f };
+	const GLfloat y_axis[] = { 0.0f, 1.0f, 0.0f };
+	const GLfloat z_axis[] = { 0.0f, 0.0f, 1.0f };
+
+	GLfloat tmp[16];
+
+	ident(tmp);
+
+	rotate(tmp, x_axis, rot[0], tmp);
+	rotate(tmp, y_axis, rot[1], tmp);
+	rotate(tmp, z_axis, rot[2], tmp);
+
+	scale(tmp, scl, tmp);
+
+	translate(tmp, pos, model);
+
+	return model;
+}
+
+static GLfloat *
+make_view(struct ctx *prog_ctx, GLfloat *view, const GLfloat *pos)
+{
+	memset(view, 0, sizeof(GLfloat) * 16);
+	view[0] = 1.0f;
+	view[5] = 1.0f;
+	view[10] = 1.0f;
+	view[12] = -pos[0];
+	view[13] = -pos[1];
+	view[14] = -pos[2];
+	view[15] = 1.0f;
+
+	return view;
+}
+
+static GLfloat *
+make_projection(struct ctx *prog_ctx, GLfloat *proj)
+{
+	float aspect = (float)viewport_width / (float)viewport_height;
+	float fov = 60.0f * (float)M_PI / 180.0f;
+	float near = 0.1f;
+	float far = 100.0f;
+
+	float tan_half_fov = tanf(fov / 2.0f);
+
+	memset(proj, 0, sizeof(GLfloat) * 16);
+	proj[0] = 1.0f / (aspect * tan_half_fov);
+	proj[5] = 1.0f / tan_half_fov;
+	proj[10] = -(far + near) / (far - near);
+	proj[11] = -1.0f;
+	proj[14] = -(2.0f * far * near) / (far - near);
+
+	return proj;
+}
+
+static void
+draw_cube(struct ctx *prog_ctx, const GLfloat *pos, const GLfloat *rot, const GLfloat *scl)
+{
+	GLfloat model[16];
+	make_model(prog_ctx, model, pos, rot, scl);
+	glUniformMatrix4fv(prog_ctx->programs.model_unif, 1, GL_FALSE, model);
+
+	glBindVertexArray(prog_ctx->objects.cube_vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, prog_ctx->objects.cube_ebo);
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+}
+
+static void
+make_vec(GLfloat *const out, GLfloat x, GLfloat y, GLfloat z)
+{
+	out[0] = x;
+	out[1] = y;
+	out[2] = z;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -130,6 +397,13 @@ main(int argc, char *argv[])
 	mtgldevice device;
 	mtgljoystickinfo jsinfo;
 	mtglctxinitargs args;
+	GLfloat view[16];
+	GLfloat proj[16];
+	GLfloat camera_pos[3] = { 0.0f, 0.0f, 7.0f };
+	GLfloat cube_pos[3];
+	GLfloat cube_rot[3];
+	GLfloat cube_scl[3];
+	float rot_offset;
 
 	if (!mtgl_init())
 	{
@@ -149,11 +423,11 @@ main(int argc, char *argv[])
 
 	/* 8x MSAA on the default framebuffer */
 	mtgl_ctx_get_default_init_args(&args);
-	args.allow_sampling = 1;
-	args.sample_count = 8;
+	args.allow_sampling = 0;
+	args.sample_count = 1;
 
 	/* create a window */
-	prog_ctx.win = mtgl_win_create("OpenGL Window", 800, 600, 0, 0, &prog_ctx);
+	prog_ctx.win = mtgl_win_create("OpenGL Window", viewport_width, viewport_height, 0, 0, &prog_ctx);
 	if (!prog_ctx.win)
 	{
 		fprintf(stderr, "Failed to create window\n");
@@ -193,7 +467,9 @@ main(int argc, char *argv[])
 	printf("GLSL:    %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 	printf("Vendor:  %s\n", glGetString(GL_VENDOR));
 
-	glEnable(GL_MULTISAMPLE);
+	//glEnable(GL_MULTISAMPLE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	mtgl_ctx_release(prog_ctx.ctx);
 
@@ -224,9 +500,14 @@ main(int argc, char *argv[])
 	{
 		mtgl_get_size(prog_ctx.win, &width, &height);
 	
-		r = sinf(mtgl_get_time(prog_ctx.win)) * 0.5f + 0.5f;
-		g = sinf(mtgl_get_time(prog_ctx.win) + one_third_2pi) * 0.5f + 0.5f;
-		b = sinf(mtgl_get_time(prog_ctx.win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
+		//r = sinf(mtgl_get_time(prog_ctx.win)) * 0.5f + 0.5f;
+		//g = sinf(mtgl_get_time(prog_ctx.win) + one_third_2pi) * 0.5f + 0.5f;
+		//b = sinf(mtgl_get_time(prog_ctx.win) + 2.0f * one_third_2pi) * 0.5f + 0.5f;
+
+		r = 0.2f;
+		g = 0.2f;
+		b = 0.4f;
+
 
 		if (skipped_frames < max_frame_skips)
 			acquired = mtgl_ctx_try_acquire(prog_ctx.ctx);
@@ -240,17 +521,47 @@ main(int argc, char *argv[])
 		if (acquired)
 		{
 			glClearColor(r, g, b, 1);
-			glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			/* draw the triangle */
-			if (prog_ctx.objects.tri_vao && prog_ctx.programs.screen)
+			if (prog_ctx.objects.cube_vao && prog_ctx.programs.screen)
 			{
 				glUseProgram(prog_ctx.programs.screen);
 
-				glUniform3f(prog_ctx.programs.screen_color_unif, r, g, b);
+				glUniform1f(prog_ctx.programs.time_unif, mtgl_get_time(prog_ctx.win));
+				glUniform3f(prog_ctx.programs.cam_pos_unif, camera_pos[0], camera_pos[1], camera_pos[2]);
+				glUniform3f(prog_ctx.programs.ambient_color_unif, r, g, b);
+				
+				make_view(&prog_ctx, view, camera_pos);
+				make_projection(&prog_ctx, proj);
 
-				glBindVertexArray(prog_ctx.objects.tri_vao);
-				glDrawArrays(GL_TRIANGLES, 0, 3);
+				glUniformMatrix4fv(prog_ctx.programs.view_unif, 1, GL_FALSE, view);
+				glUniformMatrix4fv(prog_ctx.programs.proj_unif, 1, GL_FALSE, proj);
+
+				rot_offset = mtgl_get_time(prog_ctx.win) * 5.0f;
+
+				make_vec(cube_pos, -2, -0.5, 2);
+				make_vec(cube_rot, 45 + rot_offset, 0 + rot_offset, 0 + rot_offset);
+				make_vec(cube_scl, 1, 1, 1);
+				glUniform3f(prog_ctx.programs.color_unif, 0.5f, 0.2f, 0.4f);
+				draw_cube(&prog_ctx, cube_pos, cube_rot, cube_scl);
+
+				make_vec(cube_pos, 2, 1, 1);
+				make_vec(cube_rot, 15 + rot_offset, 0 + rot_offset, 45 + rot_offset);
+				make_vec(cube_scl, 1, 1, 1);
+				glUniform3f(prog_ctx.programs.color_unif, 0.1f, 0.7f, 0.3f);
+				draw_cube(&prog_ctx, cube_pos, cube_rot, cube_scl);
+
+				make_vec(cube_pos, -1, 0, -3);
+				make_vec(cube_rot, 0 + rot_offset, 30 + rot_offset, 15 + rot_offset);
+				make_vec(cube_scl, 1, 1, 1);
+				glUniform3f(prog_ctx.programs.color_unif, 0.3f, 0.4f, 0.8f);
+				draw_cube(&prog_ctx, cube_pos, cube_rot, cube_scl);
+
+				make_vec(cube_pos, 0, -2, 0);
+				make_vec(cube_rot, 0, 0, 0);
+				make_vec(cube_scl, 10, 1, 10);
+				glUniform3f(prog_ctx.programs.color_unif, 0.2f, 0.2f, 0.2f);
+				draw_cube(&prog_ctx, cube_pos, cube_rot, cube_scl);
 			}
 
 			mtgl_ctx_release(prog_ctx.ctx);
@@ -288,8 +599,9 @@ main(int argc, char *argv[])
 	/* cleanup OpenGL resources */
 	mtgl_ctx_acquire(prog_ctx.ctx);
 
-	glDeleteBuffers(1, &prog_ctx.objects.tri_vbo);
-	glDeleteVertexArrays(1, &prog_ctx.objects.tri_vao);
+	glDeleteBuffers(1, &prog_ctx.objects.cube_ebo);
+	glDeleteBuffers(1, &prog_ctx.objects.cube_vbo);
+	glDeleteVertexArrays(1, &prog_ctx.objects.cube_vao);
 
 	destroy_shaders(&prog_ctx);
 
@@ -321,55 +633,45 @@ loader_worker(void *ptr)
 	mtglwin *win = prog_ctx->win;
 	mtglctx *ctx = prog_ctx->ctx;
 
-	/* triangle vertex data */
-	GLfloat vbo_data[] = {
-		// pos			// color
-		-1.0f, -1.0f,	1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
-		1.0f, -1.0f,	0.0f, 0.0f, 1.0f
-	};
-
 	mtgl_ctx_acquire(ctx);
 
-	printf("Loading shaders\n");
+	printf("Loading shaders on another thread\n");
 	load_shaders(prog_ctx);
-	prog_ctx->programs.screen_color_unif = glGetUniformLocation(prog_ctx->programs.screen, "uColor");
+	prog_ctx->programs.time_unif = glGetUniformLocation(prog_ctx->programs.screen, "uTime");
+	prog_ctx->programs.model_unif = glGetUniformLocation(prog_ctx->programs.screen, "uModel");
+	prog_ctx->programs.view_unif = glGetUniformLocation(prog_ctx->programs.screen, "uView");
+	prog_ctx->programs.proj_unif = glGetUniformLocation(prog_ctx->programs.screen, "uProj");
+	prog_ctx->programs.cam_pos_unif = glGetUniformLocation(prog_ctx->programs.screen, "uCameraPos");
+	prog_ctx->programs.ambient_color_unif = glGetUniformLocation(prog_ctx->programs.screen, "uAmbientColor");
+	prog_ctx->programs.color_unif = glGetUniformLocation(prog_ctx->programs.screen, "uColor");
 	printf("Done loading\n");
 
-	mtgl_ctx_release(ctx);
+	printf("Loading cube on another thread!\n");
 
-	// some long cpu work (maybe something to do with the triangle created below, but not on GPU)
-	printf("Doing some 'intensive' cpu work\n");
-#if _WIN32
-	Sleep(3000);
-#elif __posix__ || __linux__ || __APPLE__
-	sleep(3);
-#endif
-	printf("Work done\n");
+	/* create the cube */
+	glGenVertexArrays(1, &prog_ctx->objects.cube_vao);
+	glGenBuffers(1, &prog_ctx->objects.cube_vbo);
+	glGenBuffers(1, &prog_ctx->objects.cube_ebo);
 
-	mtgl_ctx_acquire(ctx);
+	glBindVertexArray(prog_ctx->objects.cube_vao);
 
-	printf("Loading triangle on another thread!\n");
+	glBindBuffer(GL_ARRAY_BUFFER, prog_ctx->objects.cube_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-	/* Create the triangle */
-	glGenVertexArrays(1, &prog_ctx->objects.tri_vao);
-	glGenBuffers(1, &prog_ctx->objects.tri_vbo);
-
-	glBindVertexArray(prog_ctx->objects.tri_vao);
-
-	glBindBuffer(GL_ARRAY_BUFFER, prog_ctx->objects.tri_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vbo_data), vbo_data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, prog_ctx->objects.cube_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(0 * sizeof(GLfloat)));
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void *)(0 * sizeof(GLfloat)));
 
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(2 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void *)(3 * sizeof(GLfloat)));
 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	printf("Triangle done loading!\n");
+	printf("Cube done loading!\n");
 
 	mtgl_ctx_release(ctx);
 
